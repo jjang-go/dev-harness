@@ -1,0 +1,8 @@
+{
+  "name": "dev-harness",
+  "version": "0.1.0",
+  "description": "프로젝트마다 tykim의 규칙으로 구성된 하네스를 초기 세팅해주는 플러그인",
+  "author": { "name": "tykim" },
+  "license": "MIT",
+  "keywords": ["harness", "scaffold", "rules", "init"]
+}
