@@ -2,6 +2,11 @@
 
 프로젝트마다 직접 만든 규칙 세트(하네스)를 초기 세팅해주는 Claude Code 플러그인.
 
+## 사전 요구사항
+
+- Claude Code (플러그인 지원 버전)
+- 하네스를 설치할 프로젝트는 git 저장소여야 한다.
+
 ## 설치
 
 마켓플레이스를 등록하고 플러그인을 설치한다.
@@ -25,6 +30,7 @@
 | 항목 | 설치 위치 |
 | --- | --- |
 | 커밋 메시지 템플릿 | `.gitmessage` (`git config commit.template`도 설정) |
+| 빈 소제목을 막는 커밋 훅 | `.githooks/commit-msg` (`git config core.hooksPath`도 설정) |
 | 커밋 메시지·README 작성 규칙 | `.claude/rules/commit-message.md`, `.claude/rules/readme-guidelines.md` |
 | PR·이슈 템플릿과 작성 규칙 | `.github/` 또는 `.gitlab/`, `.claude/rules/pr-issue-guidelines.md` |
 | 기능 명세 템플릿 | `docs/specs/TEMPLATE.md` |
@@ -50,6 +56,7 @@ templates/           # 프로젝트로 복사될 템플릿과 규칙
   platforms/         #   GitHub·GitLab PR/이슈 템플릿
   docs/              #   ARCHITECTURE.md, 기능 명세 템플릿
   gitmessage         #   커밋 메시지 템플릿
+  githooks/          #   빈 소제목을 막는 commit-msg 훅
   CLAUDE.md          #   코딩 지침
 ```
 
@@ -70,3 +77,7 @@ claude plugin validate .
 - `release/<버전>`: `develop`에서 만든다. 버그 수정, 버전 갱신, 문서만 넣고 `main`에 병합한 뒤 `develop`에도 병합한다.
 - `hotfix/<버전>`: `main`에서 만든다. `main`과 `develop` 양쪽에 병합한다.
 - 모든 병합은 `--no-ff`로 한다.
+
+## 라이선스
+
+MIT. 포함한 서드파티 자료의 고지는 `THIRD_PARTY_NOTICES.md`에 있다.

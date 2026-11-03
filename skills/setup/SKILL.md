@@ -32,8 +32,15 @@ disable-model-invocation: true
 | `T/gitmessage` | `.gitmessage` |
 | `T/rules/commit-message.md` | `.claude/rules/commit-message.md` |
 | `T/rules/readme-guidelines.md` | `.claude/rules/readme-guidelines.md` |
+| `T/githooks/commit-msg` | `.githooks/commit-msg` (실행 권한 부여) |
 
-복사한 뒤 `git config commit.template .gitmessage`를 실행한다. 이미 다른 값이 설정돼 있으면 값을 보여 주고 바꿀지 묻는다.
+복사한 뒤 아래 git 설정을 한다. 이미 다른 값이 설정돼 있으면 값을 보여 주고 바꿀지 묻는다.
+
+- `git config commit.template .gitmessage`
+- `git config core.hooksPath .githooks`: 내용 없는 커밋 소제목을 막는 훅을 켠다.
+  - `core.hooksPath`가 이미 다른 디렉터리(예: `.husky`)를 가리키면 바꾸지 않는다. 그 디렉터리에 `commit-msg`가 없으면 훅을 그곳에 복사할지, `commit-msg`가 있으면 기존 훅에 호출을 덧붙일지 묻는다.
+  - `core.hooksPath`가 없고 `.git/hooks/`에 `.sample`이 아닌 훅이 있으면, 설정하는 순간 그 훅들이 꺼진다. 목록을 보여 주고 `.githooks/`로 옮길지 묻는다.
+  - `core.hooksPath`는 저장소마다 각자 설정해야 하는 로컬 설정이다. 마무리 보고에서 다른 팀원도 같은 명령을 실행해야 한다고 알린다.
 
 ### ① 브랜치 전략
 
