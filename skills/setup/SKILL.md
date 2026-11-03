@@ -39,7 +39,8 @@ disable-model-invocation: true
 - `git config commit.template .gitmessage`
 - `git config core.hooksPath .githooks`: 내용 없는 커밋 소제목을 막는 훅을 켠다.
   - `core.hooksPath`가 이미 다른 디렉터리(예: `.husky`)를 가리키면 바꾸지 않는다. 그 디렉터리에 `commit-msg`가 없으면 훅을 그곳에 복사할지, `commit-msg`가 있으면 기존 훅에 호출을 덧붙일지 묻는다.
-  - `core.hooksPath`가 없고 `.git/hooks/`에 `.sample`이 아닌 훅이 있으면, 설정하는 순간 그 훅들이 꺼진다. 목록을 보여 주고 `.githooks/`로 옮길지 묻는다.
+  - `core.hooksPath`가 없고 `.git/hooks/`에 `.sample`이 아닌 훅이 있으면, 설정하는 순간 그 훅들이 꺼진다. 목록을 보여 주고 `.githooks/`로 옮길지 묻는다. 옮긴 훅은 커밋하면 팀 전체에 공유된다는 점도 함께 알린다(원래는 각자의 로컬에만 있던 훅이다).
+  - 연결한 뒤에는 git이 실제로 부르는 훅(`core.hooksPath` 아래 `commit-msg`)을 임시 메시지 파일로 직접 실행해 확인한다. 빈 소제목이 있는 메시지는 거부되고 정상 메시지는 통과해야 한다. 기존 훅 중간에 `exit`가 있으면 덧붙인 호출이 실행되지 않을 수 있기 때문이다.
   - `core.hooksPath`는 저장소마다 각자 설정해야 하는 로컬 설정이다. 마무리 보고에서 다른 팀원도 같은 명령을 실행해야 한다고 알린다.
 
 ### ① 브랜치 전략
@@ -65,6 +66,7 @@ disable-model-invocation: true
   2. `이전`이면 분류안대로 파일을 만든다.
   3. `거절`이면 기존 내용을 통째로 `.claude/rules/project-guidelines.md`로 옮긴다. 개인 내용만 `CLAUDE.local.md`로 분리한다.
   4. 어느 쪽이든 옮긴 내용이 빠짐없이 새 파일에 들어갔는지 확인한 뒤에만 루트 `CLAUDE.md`를 `T/CLAUDE.md`로 바꾼다. 확인하기 전에는 원본을 지우지 않는다.
+  5. `CLAUDE.local.md`를 만들었다면 `.gitignore`에 `CLAUDE.local.md` 줄이 있는지 확인하고, 없으면 추가한다(`.gitignore`가 없으면 만든다). 개인 메모가 커밋되지 않게 하려는 것이다.
 
 ### ③ ARCHITECTURE.md
 
