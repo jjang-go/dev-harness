@@ -2,6 +2,11 @@
 
 프로젝트마다 직접 만든 규칙 세트(하네스)를 초기 세팅해주는 Claude Code 플러그인.
 
+## 사전 요구사항
+
+- Claude Code (플러그인 지원 버전)
+- 하네스를 설치할 프로젝트는 git 저장소여야 한다.
+
 ## 설치
 
 마켓플레이스를 등록하고 플러그인을 설치한다.
@@ -70,3 +75,7 @@ claude plugin validate .
 - `release/<버전>`: `develop`에서 만든다. 버그 수정, 버전 갱신, 문서만 넣고 `main`에 병합한 뒤 `develop`에도 병합한다.
 - `hotfix/<버전>`: `main`에서 만든다. `main`과 `develop` 양쪽에 병합한다.
 - 모든 병합은 `--no-ff`로 한다.
+
+## 라이선스
+
+MIT. 포함한 서드파티 자료의 고지는 `THIRD_PARTY_NOTICES.md`에 있다.
