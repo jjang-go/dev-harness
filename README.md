@@ -30,6 +30,7 @@
 | 항목 | 설치 위치 |
 | --- | --- |
 | 커밋 메시지 템플릿 | `.gitmessage` (`git config commit.template`도 설정) |
+| 빈 소제목을 막는 커밋 훅 | `.githooks/commit-msg` (`git config core.hooksPath`도 설정) |
 | 커밋 메시지·README 작성 규칙 | `.claude/rules/commit-message.md`, `.claude/rules/readme-guidelines.md` |
 | PR·이슈 템플릿과 작성 규칙 | `.github/` 또는 `.gitlab/`, `.claude/rules/pr-issue-guidelines.md` |
 | 기능 명세 템플릿 | `docs/specs/TEMPLATE.md` |
@@ -55,6 +56,7 @@ templates/           # 프로젝트로 복사될 템플릿과 규칙
   platforms/         #   GitHub·GitLab PR/이슈 템플릿
   docs/              #   ARCHITECTURE.md, 기능 명세 템플릿
   gitmessage         #   커밋 메시지 템플릿
+  githooks/          #   빈 소제목을 막는 commit-msg 훅
   CLAUDE.md          #   코딩 지침
 ```
 

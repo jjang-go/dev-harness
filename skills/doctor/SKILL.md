@@ -1,7 +1,7 @@
 ---
 name: doctor
 description: 현재 프로젝트에 설치된 dev-harness 상태를 점검하고 문제를 보고한다. "하네스 점검", "하네스 진단", "harness doctor" 요청 시 사용.
-allowed-tools: Read Glob Grep Bash(git config *) Bash(git rev-parse *) Bash(git remote *) Bash(date *)
+allowed-tools: Read Glob Grep Bash(git config *) Bash(git rev-parse *) Bash(git remote *) Bash(date *) Bash(ls *)
 ---
 
 # dev-harness doctor
@@ -30,6 +30,7 @@ allowed-tools: Read Glob Grep Bash(git config *) Bash(git rev-parse *) Bash(git 
 
 - `git config --get commit.template`이 `.gitmessage`인지 본다. 다르거나 없으면 `FAIL`.
 - 루트 `.gitmessage`가 없으면 `FAIL`.
+- `git config --get core.hooksPath`가 가리키는 디렉터리에 실행 가능한 `commit-msg`가 있는지 본다. 설정이 없거나 훅이 없으면 `WARN`(빈 소제목을 막지 못함). 실행 권한이 없으면 `FAIL`(훅이 조용히 무시됨).
 
 ### 2. 브랜치 전략
 
