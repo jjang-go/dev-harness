@@ -107,8 +107,39 @@ disable-model-invocation: true
 
 필요한 상위 디렉터리는 만들고, `.DS_Store`는 복사하지 않는다.
 
+### ⑥ codegraph
+
+codegraph는 코드의 심볼·호출 관계·의존성을 로컬 그래프(`.codegraph/codegraph.db`)로 만들고, Claude가 MCP 도구로 그 그래프를 조회하게 한다. 파일을 하나씩 열어 찾는 대신 그래프에서 바로 답을 얻으므로 도구 호출·토큰·시간이 크게 줄어든다. 모두 로컬에서 동작하고 API 키가 필요 없다.
+
+⑤-b까지 끝낸 뒤 진행한다. CLI 층 → 연결 층 → 프로젝트 층 순서로 본다. CLI 층과 연결 층은 기기 전역을 바꾸므로 반드시 묻고 나서 실행한다. 어느 층에서든 사용자가 거절하면 그 뒤 층은 건너뛰고 마무리로 간다. 연결 없이 인덱스만 만들면 Claude가 그래프를 쓰지 못하기 때문이다.
+
+1. **CLI 층**: `command -v codegraph`로 확인한다. 있으면 다음 층으로 간다.
+   - 없으면 아래를 설명한 뒤 `설치 (Recommended)` / `설치 안 함`을 묻는다.
+     - 코드베이스를 그래프로 만들어 Claude가 구조를 바로 조회하게 하는 도구다.
+     - 도구 호출이 약 88%, 토큰이 약 62%, 작업 시간이 약 53% 줄어든다.
+     - 파일이 바뀌면 그래프가 자동으로 갱신되고, 코드는 기기 밖으로 나가지 않는다.
+     - 익명 사용 통계가 기본으로 켜져 있다. `codegraph telemetry off`로 끌 수 있다.
+   - 설치하면 `command -v npm`이 있을 때 `npm i -g @colbymchenry/codegraph`를, 없을 때 `curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh`를 실행한다. 실행할 명령을 질문에 함께 보여 준다. 설치가 실패하면(예: npm 권한 오류) 다른 방법으로 자동으로 바꾸지 말고 오류를 보고한 뒤 ⑥을 멈춘다. 사용자가 승인한 것은 보여 준 명령뿐이기 때문이다.
+   - 설치한 뒤 `command -v codegraph`로 다시 확인한다. curl 방식은 새 셸에서만 PATH에 잡힐 수 있으므로, 찾지 못하면 새 터미널을 열고 setup을 다시 실행하라고 안내하고 ⑥을 멈춘다.
+2. **연결 층**: `claude mcp get codegraph`로 Claude Code에 연결됐는지 본다. 종료 코드가 0이면 연결된 것이므로 다음 층으로 간다(범위와 무관하게 찾는다).
+   - 없으면 아래 전역 변경을 모두 알리고 연결할지 묻는다.
+     - `~/.claude.json`: codegraph MCP 서버(user 범위)
+     - `~/.claude/settings.json`: `mcp__codegraph__*` 자동 허용 권한, 프롬프트마다 실행되는 `UserPromptSubmit` 훅(`codegraph prompt-hook`)
+     - `~/.claude/CLAUDE.md`: `<!-- CODEGRAPH_START -->` 표식으로 감싼 사용 안내 섹션. `.codegraph/`가 있는 저장소에서만 codegraph를 쓰라는 내용이다.
+     - 되돌리려면 `codegraph uninstall --target=claude --location=global --keep-cli`를 실행한다.
+   - 연결하면 `codegraph install --target=claude --location=global --yes`를 실행한다. `--location=local`은 쓰지 않는다. 프로젝트 `CLAUDE.md`에 섹션이 덧붙어 ④에서 설치한 파일이 원본과 달라지기 때문이다.
+3. **프로젝트 층**: 저장소 루트에서 `codegraph status --json`을 실행해 `initialized`가 `true`면 이미 세팅된 것이므로 건너뛴다. 명령이 실패하거나 JSON을 읽을 수 없으면 세팅되지 않은 것으로 본다.
+   - 개발 프로젝트인지 판정한다. 루트에 매니페스트(`package.json`, `pyproject.toml`, `requirements.txt`, `go.mod`, `Cargo.toml`, `pom.xml`, `build.gradle`, `build.gradle.kts`, `Gemfile`, `composer.json`, `Package.swift`, `pubspec.yaml`, `CMakeLists.txt`, `*.csproj`, `*.sln`)가 있거나, `git ls-files`에 소스 파일(`.ts`, `.js`, `.py`, `.go`, `.rs`, `.java`, `.kt`, `.cs`, `.php`, `.rb`, `.swift`, `.c`, `.cpp`, `.scala`, `.dart`, `.vue`, `.svelte` 등)이 있으면 개발 프로젝트로 본다.
+   - 개발 프로젝트로 판정되면 감지한 근거를 보여 주고 `세팅 (Recommended)` / `세팅 안 함`으로 적극 권장한다. 이 프로젝트에서 Claude가 코드를 찾을 때마다 위 이점을 얻는다는 점을 강조한다.
+   - 판정되지 않아도 건너뛰지 않는다. 코드가 아직 없거나 감지 기준 밖일 수 있기 때문이다. "개발 프로젝트라면 세팅을 권장한다"고 설명하고 `개발 프로젝트다, 세팅한다` / `개발 프로젝트가 아니다(건너뛰기)`를 한 질문으로 묻는다.
+   - 세팅하면 저장소 루트에서 `codegraph init --yes`를 실행하고, `codegraph status --json`으로 `initialized: true`와 파일·노드 수를 확인한다.
+   - `init`은 `.codegraph/`만 만든다. 그 안의 자체 `.gitignore`가 데이터베이스를 제외하므로 루트 `.gitignore`는 건드리지 않는다.
+
 ## 마무리
 
 1. `git status --short`로 바뀐 파일을 보여 주고, 설치한 것과 건너뛴 것을 나눠 보고한다.
 2. `ARCHITECTURE.md`를 설치했다면 조감도·코드맵을 채워야 하고 맨 위 `마지막 점검` 날짜도 직접 적어야 한다고 알린다.
-3. `/dev-harness:doctor`로 설치 상태를 점검할 수 있다고 안내한다.
+3. ⑥에서 한 일을 보고한다.
+   - Claude Code를 새로 연결했다면 Claude Code를 다시 시작해야 codegraph MCP 서버가 로드된다고 알린다.
+   - 프로젝트를 세팅했다면 커밋할 파일은 `.codegraph/.gitignore` 하나뿐이고, 인덱스 데이터베이스는 공유되지 않으므로 다른 팀원도 각자 `codegraph init`을 실행해야 인덱스가 생긴다고 알린다.
+4. `/dev-harness:doctor`로 설치 상태를 점검할 수 있다고 안내한다.

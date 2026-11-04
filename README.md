@@ -20,7 +20,7 @@
 
 | 명령 | 하는 일 |
 | --- | --- |
-| `/dev-harness:setup` | 현재 프로젝트에 하네스를 설치한다. 플랫폼, 브랜치 전략, CLAUDE.md, ARCHITECTURE.md 설치 여부를 차례로 묻는다. |
+| `/dev-harness:setup` | 현재 프로젝트에 하네스를 설치한다. 플랫폼, 브랜치 전략, CLAUDE.md, ARCHITECTURE.md, codegraph 설치 여부를 차례로 묻는다. |
 | `/dev-harness:doctor` | 설치 상태를 점검하고 문제를 보고한다. 파일은 고치지 않는다. |
 
 `setup`은 기존 파일을 말없이 덮어쓰지 않고, 설치가 끝나도 커밋하지 않는다.
@@ -38,6 +38,7 @@
 | 코딩 지침 | `CLAUDE.md` |
 | 아키텍처 문서 (선택) | `ARCHITECTURE.md`, `.claude/rules/architecture-doc.md` |
 | 서드파티 고지 (선택) | `THIRD_PARTY_NOTICES.md` |
+| codegraph 코드 그래프 (선택, 묻고 설치) | CLI·Claude Code 연결은 기기 전역, 인덱스는 `.codegraph/` |
 
 ## 구조
 
