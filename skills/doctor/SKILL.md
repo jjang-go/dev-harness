@@ -1,7 +1,7 @@
 ---
 name: doctor
 description: 현재 프로젝트에 설치된 dev-harness 상태를 점검하고 문제를 보고한다. "하네스 점검", "하네스 진단", "harness doctor" 요청 시 사용.
-allowed-tools: Read Glob Grep Bash(git config *) Bash(git rev-parse *) Bash(git remote *) Bash(date *) Bash(ls *) Bash(command -v codegraph) Bash(claude mcp get codegraph) Bash(codegraph status --json)
+allowed-tools: Read Glob Grep Bash(git config *) Bash(git rev-parse *) Bash(git remote *) Bash(date *) Bash(ls *) Bash(command -v codegraph) Bash(claude mcp get codegraph) Bash(codegraph status --json) Bash(command -v gitleaks) Bash(gitleaks version)
 ---
 
 # dev-harness doctor
@@ -23,7 +23,7 @@ allowed-tools: Read Glob Grep Bash(git config *) Bash(git rev-parse *) Bash(git 
 
 - 설치된 파일은 모두 원본과 비교한다. 같으면 `OK`, 다르면 `WARN`으로 차이를 한두 줄로 요약한다.
 - 다르다는 것은 팀이 의도해서 고쳤거나, 플러그인이 갱신되어 설치본이 낡았다는 뜻이다. 어느 쪽인지 단정하지 말고 둘 다 가능하다고 적는다. 원본을 받으려면 `/dev-harness:setup`을 다시 실행하면 된다(다른 파일은 덮어쓰기 전에 묻는다).
-- 채워 쓰도록 만든 파일인 `ARCHITECTURE.md`는 비교하지 않는다.
+- 채워 쓰도록 만든 파일인 `ARCHITECTURE.md`와, 팀이 규칙·예외를 더해 쓰는 `secret-files`·`.gitleaks.toml`은 비교하지 않는다. 뒤의 둘은 8번에서 핵심 설정만 본다.
 
 ## 점검 항목
 
@@ -57,6 +57,7 @@ allowed-tools: Read Glob Grep Bash(git config *) Bash(git rev-parse *) Bash(git 
 - `.claude/rules/commit-message.md`
 - `.claude/rules/readme-guidelines.md`
 - `.claude/rules/pr-issue-guidelines.md`
+- `.claude/rules/secret-scan.md`
 - `docs/specs/TEMPLATE.md`
 
 플랫폼 파일은 `.github/` 또는 `.gitlab/` 중 어느 쪽이 있는지로 판단한다.
@@ -80,6 +81,19 @@ allowed-tools: Read Glob Grep Bash(git config *) Bash(git rev-parse *) Bash(git 
   - 인덱싱돼 있으면 `fileCount`와 `lastIndexed`를 `OK`에 적는다.
   - `nodeCount`가 0이면 `WARN`(심볼이 없어 그래프가 비어 있음). `fileCount`는 YAML·설정 파일도 세므로 기준으로 쓰지 않는다. 해결: 소스 코드가 생긴 뒤 `codegraph index --force`로 다시 인덱싱하고, 개발 프로젝트가 아니면 `codegraph uninit`으로 지운다.
   - `index.reindexRecommended`가 `true`면 `WARN`. 해결: `codegraph index --force`.
+
+### 8. 비밀값 커밋 방지
+
+층마다 한 줄로 보고하며 각각 합계에 센다.
+
+- 훅: `git config --get core.hooksPath`가 가리키는 디렉터리에 실행 가능한 `pre-commit`이 있는지 본다. 설정이 없거나 훅이 없으면 `FAIL`(비밀값 커밋을 막지 못함). 실행 권한이 없으면 `FAIL`(훅이 조용히 무시됨).
+- 비밀 파일 목록: 하네스 `pre-commit`과 같은 디렉터리에서 `secret-files`를 찾는다. `core.hooksPath`가 `.githooks`가 아니고 그 아래 `pre-commit`이 `.githooks/pre-commit`을 부른다면(setup이 기존 훅에 호출을 덧붙인 경우) `.githooks/`에서 찾는다. 없으면 `FAIL`(훅이 비밀 파일 이름 검사를 건너뜀). 있으면 `.env` 줄이 있는지 보고, 없으면 `WARN`(가장 흔한 비밀 파일을 막지 못함. 팀이 의도했을 수도 있다).
+- 비밀값 설정: 루트 `.gitleaks.toml`이 없으면 `INFO`(gitleaks 기본 규칙만 적용됨). 있는데 `useDefault = true`가 없으면 `WARN`(gitleaks 기본 규칙이 꺼지고 이 파일의 규칙만 적용됨. 팀이 의도했을 수도 있다).
+- gitleaks: `gitleaks version`을 본다. 해결 방법은 모두 `.claude/rules/secret-scan.md`의 "gitleaks 설치" 절을 따르라는 것이다.
+  - 없으면 `WARN`(비밀값을 최소 내장 패턴으로만 검사하고 `.gitleaks.toml`이 적용되지 않음).
+  - 8.25보다 낮거나 버전 번호가 아닌 문구가 나오면 `FAIL`(훅이 실행 오류로 모든 커밋을 막음). `command -v gitleaks` 경로를 함께 적는다.
+  - 8.25 이상이면 버전을 `OK`에 적는다.
+- `.gitignore`: `secret-files`의 패턴 줄(주석 제외) 중 `.gitignore`에 없는 줄이 있으면 `INFO`로 나열한다(선택 설치. 훅이 커밋은 막는다).
 
 ## 보고 형식
 

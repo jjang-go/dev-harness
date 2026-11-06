@@ -1,6 +1,6 @@
 ---
 name: setup
-description: 현재 프로젝트에 dev-harness 규칙 세트(브랜치 전략, 커밋·README·PR·이슈 규칙, CLAUDE.md, ARCHITECTURE.md)를 초기 세팅한다. "하네스 세팅", "하네스 초기화", "harness setup" 요청 시 사용.
+description: 현재 프로젝트에 dev-harness 규칙 세트(브랜치 전략, 커밋·README·PR·이슈 규칙, 비밀값 커밋 방지, CLAUDE.md, ARCHITECTURE.md)를 초기 세팅한다. "하네스 세팅", "하네스 초기화", "harness setup" 요청 시 사용.
 disable-model-invocation: true
 ---
 
@@ -33,15 +33,34 @@ disable-model-invocation: true
 | `T/rules/commit-message.md` | `.claude/rules/commit-message.md` |
 | `T/rules/readme-guidelines.md` | `.claude/rules/readme-guidelines.md` |
 | `T/githooks/commit-msg` | `.githooks/commit-msg` (실행 권한 부여) |
+| `T/githooks/pre-commit` | `.githooks/pre-commit` (실행 권한 부여) |
+| `T/githooks/secret-files` | `.githooks/secret-files` |
+| `T/gitleaks.toml` | `.gitleaks.toml` |
+| `T/rules/secret-scan.md` | `.claude/rules/secret-scan.md` |
+
+`secret-files`(비밀 파일 이름 목록)와 `.gitleaks.toml`(비밀값 규칙)은 팀이 규칙과 예외를 더해 쓰는 파일이다. 이미 있으면 "충돌 처리"를 따르되, 덮어쓰면 팀이 추가한 규칙이 사라진다는 점을 함께 알린다. `pre-commit`은 자기와 같은 디렉터리의 `secret-files`를 읽으므로 둘은 항상 같은 디렉터리에 둔다.
 
 복사한 뒤 아래 git 설정을 한다. 이미 다른 값이 설정돼 있으면 값을 보여 주고 바꿀지 묻는다.
 
 - `git config commit.template .gitmessage`
-- `git config core.hooksPath .githooks`: 내용 없는 커밋 소제목을 막는 훅을 켠다.
-  - `core.hooksPath`가 이미 다른 디렉터리(예: `.husky`)를 가리키면 바꾸지 않는다. 그 디렉터리에 `commit-msg`가 없으면 훅을 그곳에 복사할지, `commit-msg`가 있으면 기존 훅에 호출을 덧붙일지 묻는다.
+- `git config core.hooksPath .githooks`: 내용 없는 커밋 소제목을 막는 `commit-msg`와 비밀값 커밋을 막는 `pre-commit`을 켠다.
+  - `core.hooksPath`가 이미 다른 디렉터리(예: `.husky`)를 가리키면 바꾸지 않는다. 두 훅 각각에 대해, 그 디렉터리에 같은 이름의 훅이 없으면 그곳에 복사할지, 있으면 기존 훅에 호출을 덧붙일지 묻는다. `pre-commit`을 그곳에 복사하면 `secret-files`도 함께 복사하고, 호출을 덧붙이면 `.githooks/pre-commit`을 부르므로 목록은 `.githooks/`에 그대로 둔다.
   - `core.hooksPath`가 없고 `.git/hooks/`에 `.sample`이 아닌 훅이 있으면, 설정하는 순간 그 훅들이 꺼진다. 목록을 보여 주고 `.githooks/`로 옮길지 묻는다. 옮긴 훅은 커밋하면 팀 전체에 공유된다는 점도 함께 알린다(원래는 각자의 로컬에만 있던 훅이다).
-  - 연결한 뒤에는 git이 실제로 부르는 훅(`core.hooksPath` 아래 `commit-msg`)을 임시 메시지 파일로 직접 실행해 확인한다. 빈 소제목이 있는 메시지는 거부되고 정상 메시지는 통과해야 한다. 기존 훅 중간에 `exit`가 있으면 덧붙인 호출이 실행되지 않을 수 있기 때문이다.
+  - 연결한 뒤에는 git이 실제로 부르는 훅(`core.hooksPath` 아래 훅)을 직접 실행해 확인한다. 기존 훅 중간에 `exit`가 있으면 덧붙인 호출이 실행되지 않을 수 있기 때문이다.
+    - `commit-msg`: 임시 메시지 파일로 실행한다. 빈 소제목이 있는 메시지는 거부되고 정상 메시지는 통과해야 한다.
+    - `pre-commit`: 대상 저장소의 스테이징을 건드리지 않도록 `mktemp -d`로 만든 임시 저장소에서 실행한다. 훅·`secret-files`·`.gitleaks.toml`을 복사하고, 아래를 하나씩 스테이징해 실행한다. 내용 있는 `.env`(예: `A=1`)와 빈 `.env`는 거부되고, 평범한 파일만 있으면 통과해야 한다. 빈 `.env`는 파일 이름 검사가 gitleaks와 별개로 동작하는지 확인하는 경우다. 확인이 끝나면 임시 저장소를 지운다.
   - `core.hooksPath`는 저장소마다 각자 설정해야 하는 로컬 설정이다. 마무리 보고에서 다른 팀원도 같은 명령을 실행해야 한다고 알린다.
+
+비밀값 검사를 마저 갖춘다.
+
+- **gitleaks**: 설치 방법과 최소 버전은 `T/rules/secret-scan.md`의 "gitleaks 설치" 절을 따른다. 팀원도 같은 절을 보고 설치하므로 방법을 여기에 따로 적지 않는다.
+  1. `gitleaks version`으로 확인한다. 8.25 이상의 버전 번호면 다음으로 간다.
+  2. 없으면 비밀 파일 검사는 그대로 동작하지만, 비밀값은 훅의 최소 내장 패턴으로만 검사하고 `.gitleaks.toml`이 적용되지 않는다고 설명한다. 8.25보다 낮거나 버전 번호가 아닌 문구가 나오면(배포판 패키지 빌드) 훅이 실행 오류로 모든 커밋을 막는다고 설명한다. `command -v gitleaks`로 지금 쓰이는 경로도 보여 준다.
+  3. 환경을 파악해 위 절의 표에서 방법을 고른다. `uname -s`(Darwin/Linux/MINGW·MSYS), Linux면 `/etc/os-release`의 `ID`·`ID_LIKE`, 그리고 `command -v brew`·`pacman`·`dnf`·`scoop`·`choco`로 쓸 수 있는 패키지 관리자를 본다. 표에서 위에 있는 방법이 먼저다.
+  4. 고른 방법과 이유(예: Ubuntu라서 apt 대신 공식 바이너리), 실행할 명령을 보여 주고 `설치 (Recommended)` / `설치 안 함`을 묻는다. `sudo`가 필요한 명령이면 그렇다고 알린다.
+  5. 설치가 실패하면 다른 방법으로 자동으로 바꾸지 말고 오류를 보고한 뒤 다음으로 넘어간다. 사용자가 승인한 것은 보여 준 명령뿐이기 때문이다.
+  6. 설치한 뒤 `gitleaks version`으로 다시 확인한다. 예전 버전이 계속 잡히면 `command -v gitleaks` 경로를 보여 주고 `PATH` 순서나 예전 패키지 제거를 안내한다. 공식 바이너리로 설치했는데 찾지 못하면 `~/.local/bin`을 `PATH`에 넣으라고 안내한다.
+- **`.gitignore`**: `.githooks/secret-files`의 패턴 줄(주석 제외) 중 `.gitignore`에 없는 줄을 보여 주고 추가할지 묻는다(`추가 (Recommended)` / `추가 안 함`). 비밀 파일이 애초에 스테이징되지 않게 하려는 것이다. 추가하면 `# 비밀 파일 (dev-harness)` 주석 아래에 빠진 줄만 파일 끝에 덧붙이고, `.gitignore`가 없으면 만든다. 이미 추적 중인 파일은 `.gitignore`로 빠지지 않으므로, `git ls-files`에 해당 패턴의 파일이 있으면 목록을 보여 주고 직접 확인하라고 알린다.
 
 ### ① 브랜치 전략
 
@@ -138,8 +157,9 @@ codegraph는 코드의 심볼·호출 관계·의존성을 로컬 그래프(`.co
 ## 마무리
 
 1. `git status --short`로 바뀐 파일을 보여 주고, 설치한 것과 건너뛴 것을 나눠 보고한다.
-2. `ARCHITECTURE.md`를 설치했다면 조감도·코드맵을 채워야 하고 맨 위 `마지막 점검` 날짜도 직접 적어야 한다고 알린다.
-3. ⑥에서 한 일을 보고한다.
+2. 비밀값 검사를 보고한다. 다른 팀원도 각자 `.claude/rules/secret-scan.md`의 "gitleaks 설치"를 따라 설치해야 `.gitleaks.toml`이 적용된다고 알린다. 설치하지 않은 팀원은 커밋할 때마다 훅이 같은 안내를 보여 준다.
+3. `ARCHITECTURE.md`를 설치했다면 조감도·코드맵을 채워야 하고 맨 위 `마지막 점검` 날짜도 직접 적어야 한다고 알린다.
+4. ⑥에서 한 일을 보고한다.
    - Claude Code를 새로 연결했다면 Claude Code를 다시 시작해야 codegraph MCP 서버가 로드된다고 알린다.
    - 프로젝트를 세팅했다면 커밋할 파일은 `.codegraph/.gitignore` 하나뿐이고, 인덱스 데이터베이스는 공유되지 않으므로 다른 팀원도 각자 `codegraph init`을 실행해야 인덱스가 생긴다고 알린다.
-4. `/dev-harness:doctor`로 설치 상태를 점검할 수 있다고 안내한다.
+5. `/dev-harness:doctor`로 설치 상태를 점검할 수 있다고 안내한다.
