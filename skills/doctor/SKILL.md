@@ -1,7 +1,7 @@
 ---
 name: doctor
 description: 현재 프로젝트에 설치된 dev-harness 상태를 점검하고 문제를 보고한다. "하네스 점검", "하네스 진단", "harness doctor" 요청 시 사용.
-allowed-tools: Read Glob Grep Bash(git config *) Bash(git rev-parse *) Bash(git remote *) Bash(date *) Bash(ls *)
+allowed-tools: Read Glob Grep Bash(git config *) Bash(git rev-parse *) Bash(git remote *) Bash(date *) Bash(ls *) Bash(command -v codegraph) Bash(claude mcp get codegraph) Bash(codegraph status --json)
 ---
 
 # dev-harness doctor
@@ -69,6 +69,17 @@ allowed-tools: Read Glob Grep Bash(git config *) Bash(git rev-parse *) Bash(git 
 ### 6. 서드파티 고지
 
 - 루트 `THIRD_PARTY_NOTICES.md`가 있는지 본다. 없으면 `INFO`(내부 프로젝트라면 정상. 외부에 공개·배포하는 프로젝트이고 CLAUDE.md가 Karpathy 지침이면 `WARN`).
+
+### 7. codegraph
+
+선택 설치다. setup ⑥의 세 층을 차례로 보고, 층마다 한 줄로 보고하며 각각 합계에 센다.
+
+- CLI: `command -v codegraph`가 없으면 `INFO`(설치 안 함). 이 항목의 나머지는 건너뛴다.
+- 연결: `claude mcp get codegraph`의 종료 코드가 0이 아니면 `WARN`(Claude가 그래프를 쓰지 못함). 명령 자체를 실행할 수 없으면 `INFO`(확인 불가). 해결: `/dev-harness:setup`을 다시 실행하면 전역 변경 내용을 설명하고 연결한다.
+- 인덱스: `codegraph status --json`의 `initialized`가 `false`면 `INFO`(이 프로젝트는 인덱싱 안 함). 해결: `codegraph init`.
+  - 인덱싱돼 있으면 `fileCount`와 `lastIndexed`를 `OK`에 적는다.
+  - `nodeCount`가 0이면 `WARN`(심볼이 없어 그래프가 비어 있음). `fileCount`는 YAML·설정 파일도 세므로 기준으로 쓰지 않는다. 해결: 소스 코드가 생긴 뒤 `codegraph index --force`로 다시 인덱싱하고, 개발 프로젝트가 아니면 `codegraph uninit`으로 지운다.
+  - `index.reindexRecommended`가 `true`면 `WARN`. 해결: `codegraph index --force`.
 
 ## 보고 형식
 
