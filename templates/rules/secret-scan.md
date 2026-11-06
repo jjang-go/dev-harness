@@ -7,7 +7,40 @@
 | 대상 | 규칙과 예외를 두는 곳 | 검사 |
 | --- | --- | --- |
 | 비밀 파일(`.env`, `*.pem` 등) | 훅 옆의 `secret-files` (`.gitignore` 문법) | 항상 훅이 파일 이름으로 검사한다. gitleaks는 추가된 텍스트 줄만 보므로 빈 파일·바이너리·이름만 바뀐 파일을 놓치기 때문이다. |
-| 비밀값(토큰, 키) | 저장소 루트의 `.gitleaks.toml` | gitleaks가 있으면 gitleaks 기본 규칙에 이 파일의 규칙을 더해 검사한다. 없으면 훅의 최소 내장 패턴으로만 검사하고 이 파일은 적용되지 않는다. 팀원 모두 gitleaks를 설치하는 것이 전제다. |
+| 비밀값(토큰, 키) | 저장소 루트의 `.gitleaks.toml` | gitleaks가 있으면 gitleaks 기본 규칙에 이 파일의 규칙을 더해 검사한다. 없으면 훅의 최소 내장 패턴으로만 검사하고 이 파일은 적용되지 않는다. 그래서 팀원 모두 아래 "gitleaks 설치"를 따른다. |
+
+## gitleaks 설치
+
+8.25 이상이 필요하다. 훅이 쓰는 `gitleaks git` 하위 명령은 8.19부터, `[[allowlists]]`는 8.25부터 있다. 더 낮은 버전이 설치돼 있으면 훅이 실행 오류로 모든 커밋을 막는다. 설치한 뒤 `gitleaks version`이 8.25 이상의 버전 번호를 보여 주는지 확인한다. 버전 번호 대신 다른 문구가 나오면(배포판 패키지 빌드) 버전을 알 수 없으므로 아래 방법으로 다시 설치한다.
+
+| 환경 | 방법 |
+| --- | --- |
+| macOS, brew가 있는 Linux | `brew install gitleaks` |
+| Arch Linux | `sudo pacman -S gitleaks` |
+| Fedora | `sudo dnf install gitleaks` (오래된 릴리스는 8.25보다 낮으므로 버전을 확인한다) |
+| Windows | `scoop install gitleaks` 또는 `choco install gitleaks`. 둘 다 없으면 릴리스 페이지에서 `windows_x64.zip`(ARM은 `windows_arm64.zip`)을 받아 `gitleaks.exe`를 `PATH`에 있는 폴더에 둔다. 아래 스크립트는 Windows에서 동작하지 않는다. |
+| 그 밖의 Linux(Debian·Ubuntu 포함), brew 없는 macOS | 아래 공식 릴리스 바이너리. Debian·Ubuntu의 apt 패키지는 8.16이라 쓰지 않는다. |
+
+공식 릴리스 바이너리는 최신 버전을 받아 체크섬을 확인한 뒤 `~/.local/bin`에 둔다. `~/.local/bin`이 `PATH`에 없으면 셸 설정에 추가한다.
+
+```sh
+(
+  set -e
+  sum() { if command -v sha256sum >/dev/null; then sha256sum "$@"; else shasum -a 256 "$@"; fi; }
+  V=$(curl -fsSL https://api.github.com/repos/gitleaks/gitleaks/releases/latest | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p')
+  [ -n "$V" ] || { echo "최신 버전 조회 실패(네트워크나 GitHub API 호출 한도)"; exit 1; }
+  OS=$(uname -s | tr 'A-Z' 'a-z')
+  case $(uname -m) in x86_64|amd64) ARCH=x64 ;; aarch64|arm64) ARCH=arm64 ;; armv7l) ARCH=armv7 ;; *) echo "지원하지 않는 CPU: $(uname -m)"; exit 1 ;; esac
+  F=gitleaks_${V}_${OS}_${ARCH}.tar.gz
+  cd "$(mktemp -d)"
+  curl -fsSLO "https://github.com/gitleaks/gitleaks/releases/download/v$V/$F"
+  curl -fsSLO "https://github.com/gitleaks/gitleaks/releases/download/v$V/gitleaks_${V}_checksums.txt"
+  line=$(grep " $F\$" "gitleaks_${V}_checksums.txt") || { echo "체크섬 목록에 $F 없음"; exit 1; }
+  printf '%s\n' "$line" | sum -c -
+  tar xzf "$F" gitleaks
+  mkdir -p ~/.local/bin && mv gitleaks ~/.local/bin/
+)
+```
 
 ## 훅이 커밋을 막았을 때
 

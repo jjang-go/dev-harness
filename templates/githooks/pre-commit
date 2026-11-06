@@ -35,6 +35,7 @@ if command -v gitleaks >/dev/null 2>&1; then
   fi
 else
   echo "gitleaks가 없어 비밀값은 최소 내장 패턴으로만 검사한다. .gitleaks.toml은 적용되지 않는다." >&2
+  echo "설치 방법: .claude/rules/secret-scan.md의 'gitleaks 설치' (macOS는 brew install gitleaks)" >&2
 
   # 추가된 줄만 "파일:줄: 내용" 형태로 모아 고신뢰 패턴과 대조한다.
   added=$(git -c core.quotepath=off diff --cached -U0 --no-color --diff-filter=ACMRT | awk '
@@ -62,7 +63,8 @@ EOF
 fi
 
 if [ -n "$glerr" ]; then
-  echo "커밋 거부: gitleaks 실행 오류(종료 코드 $glerr)로 비밀값을 검사하지 못했다. gitleaks 버전이 낮거나(git 하위 명령이 없는 버전) .gitleaks.toml 문법이 틀렸을 수 있다." >&2
+  echo "커밋 거부: gitleaks 실행 오류(종료 코드 $glerr)로 비밀값을 검사하지 못했다. gitleaks가 8.25보다 낮거나(배포판 apt 패키지 등) .gitleaks.toml 문법이 틀렸을 수 있다." >&2
+  echo "다시 설치: .claude/rules/secret-scan.md의 'gitleaks 설치'" >&2
   [ -n "$found" ] && printf '%s' "$found" | sed 's/^/  /' >&2
   exit 1
 fi

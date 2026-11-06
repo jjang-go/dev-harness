@@ -1,7 +1,7 @@
 ---
 name: doctor
 description: 현재 프로젝트에 설치된 dev-harness 상태를 점검하고 문제를 보고한다. "하네스 점검", "하네스 진단", "harness doctor" 요청 시 사용.
-allowed-tools: Read Glob Grep Bash(git config *) Bash(git rev-parse *) Bash(git remote *) Bash(date *) Bash(ls *) Bash(command -v codegraph) Bash(claude mcp get codegraph) Bash(codegraph status --json) Bash(command -v gitleaks)
+allowed-tools: Read Glob Grep Bash(git config *) Bash(git rev-parse *) Bash(git remote *) Bash(date *) Bash(ls *) Bash(command -v codegraph) Bash(claude mcp get codegraph) Bash(codegraph status --json) Bash(command -v gitleaks) Bash(gitleaks version)
 ---
 
 # dev-harness doctor
@@ -89,7 +89,10 @@ allowed-tools: Read Glob Grep Bash(git config *) Bash(git rev-parse *) Bash(git 
 - 훅: `git config --get core.hooksPath`가 가리키는 디렉터리에 실행 가능한 `pre-commit`이 있는지 본다. 설정이 없거나 훅이 없으면 `FAIL`(비밀값 커밋을 막지 못함). 실행 권한이 없으면 `FAIL`(훅이 조용히 무시됨).
 - 비밀 파일 목록: 하네스 `pre-commit`과 같은 디렉터리에서 `secret-files`를 찾는다. `core.hooksPath`가 `.githooks`가 아니고 그 아래 `pre-commit`이 `.githooks/pre-commit`을 부른다면(setup이 기존 훅에 호출을 덧붙인 경우) `.githooks/`에서 찾는다. 없으면 `FAIL`(훅이 비밀 파일 이름 검사를 건너뜀). 있으면 `.env` 줄이 있는지 보고, 없으면 `WARN`(가장 흔한 비밀 파일을 막지 못함. 팀이 의도했을 수도 있다).
 - 비밀값 설정: 루트 `.gitleaks.toml`이 없으면 `INFO`(gitleaks 기본 규칙만 적용됨). 있는데 `useDefault = true`가 없으면 `WARN`(gitleaks 기본 규칙이 꺼지고 이 파일의 규칙만 적용됨. 팀이 의도했을 수도 있다).
-- gitleaks: `command -v gitleaks`가 없으면 `WARN`(비밀값을 최소 내장 패턴으로만 검사하고 `.gitleaks.toml`이 적용되지 않음). 해결: gitleaks를 설치한다(macOS는 `brew install gitleaks`).
+- gitleaks: `gitleaks version`을 본다. 해결 방법은 모두 `.claude/rules/secret-scan.md`의 "gitleaks 설치" 절을 따르라는 것이다.
+  - 없으면 `WARN`(비밀값을 최소 내장 패턴으로만 검사하고 `.gitleaks.toml`이 적용되지 않음).
+  - 8.25보다 낮거나 버전 번호가 아닌 문구가 나오면 `FAIL`(훅이 실행 오류로 모든 커밋을 막음). `command -v gitleaks` 경로를 함께 적는다.
+  - 8.25 이상이면 버전을 `OK`에 적는다.
 - `.gitignore`: `secret-files`의 패턴 줄(주석 제외) 중 `.gitignore`에 없는 줄이 있으면 `INFO`로 나열한다(선택 설치. 훅이 커밋은 막는다).
 
 ## 보고 형식
