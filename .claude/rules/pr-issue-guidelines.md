@@ -1,0 +1,1 @@
+../../templates/rules/pr-issue-guidelines.md
