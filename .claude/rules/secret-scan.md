@@ -1,0 +1,1 @@
+../../templates/rules/secret-scan.md

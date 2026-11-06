@@ -1,0 +1,18 @@
+# 커밋 전에 비밀값을 찾는 gitleaks 설정이다.
+# gitleaks 기본 규칙을 그대로 쓰고, 프로젝트 규칙과 예외는 이 파일에 더한다.
+# 비밀 파일(.env, *.pem 등)은 이름으로 막아야 하므로 여기가 아니라 훅 옆의 secret-files에서 관리한다.
+
+[extend]
+useDefault = true
+
+# 규칙 추가 예: 사내 토큰 형식을 막는다.
+# [[rules]]
+# id = "internal-api-token"
+# description = "사내 API 토큰"
+# regex = '''itk_[0-9a-f]{32}'''
+# keywords = ["itk_"]
+
+# 예외 추가 예: 가짜 비밀값을 쓰는 테스트 데이터 디렉터리를 검사에서 뺀다.
+# [[allowlists]]
+# description = "테스트용 가짜 비밀값"
+# paths = ['''^tests/fixtures/''']
