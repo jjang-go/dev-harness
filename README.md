@@ -13,7 +13,7 @@
 
 ```
 /plugin marketplace add jjang-go/dev-harness
-/plugin install dev-harness@tykim-dev-harness
+/plugin install dev-harness@jjang-go
 ```
 
 ## 사용
