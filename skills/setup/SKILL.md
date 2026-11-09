@@ -130,7 +130,7 @@ disable-model-invocation: true
 
 codegraph는 코드의 심볼·호출 관계·의존성을 로컬 그래프(`.codegraph/codegraph.db`)로 만들고, Claude가 MCP 도구로 그 그래프를 조회하게 한다. 파일을 하나씩 열어 찾는 대신 그래프에서 바로 답을 얻으므로 도구 호출·토큰·시간이 크게 줄어든다. 모두 로컬에서 동작하고 API 키가 필요 없다.
 
-⑤-b까지 끝낸 뒤 진행한다. CLI 층 → 연결 층 → 프로젝트 층 순서로 본다. CLI 층과 연결 층은 기기 전역을 바꾸므로 반드시 묻고 나서 실행한다. 어느 층에서든 사용자가 거절하면 그 뒤 층은 건너뛰고 마무리로 간다. 연결 없이 인덱스만 만들면 Claude가 그래프를 쓰지 못하기 때문이다.
+⑤-b까지 끝낸 뒤 진행한다. CLI 층 → 연결 층 → 프로젝트 층 순서로 본다. CLI 층과 연결 층은 기기 전역을 바꾸므로 반드시 묻고 나서 실행한다. 어느 층에서든 사용자가 거절하면 그 뒤 층은 건너뛰고 ⑦로 간다. 연결 없이 인덱스만 만들면 Claude가 그래프를 쓰지 못하기 때문이다.
 
 1. **CLI 층**: `command -v codegraph`로 확인한다. 있으면 다음 층으로 간다.
    - 없으면 아래를 설명한 뒤 `설치 (Recommended)` / `설치 안 함`을 묻는다.
@@ -138,8 +138,8 @@ codegraph는 코드의 심볼·호출 관계·의존성을 로컬 그래프(`.co
      - 도구 호출이 약 88%, 토큰이 약 62%, 작업 시간이 약 53% 줄어든다.
      - 파일이 바뀌면 그래프가 자동으로 갱신되고, 코드는 기기 밖으로 나가지 않는다.
      - 익명 사용 통계가 기본으로 켜져 있다. `codegraph telemetry off`로 끌 수 있다.
-   - 설치하면 `command -v npm`이 있을 때 `npm i -g @colbymchenry/codegraph`를, 없을 때 `curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh`를 실행한다. 실행할 명령을 질문에 함께 보여 준다. 설치가 실패하면(예: npm 권한 오류) 다른 방법으로 자동으로 바꾸지 말고 오류를 보고한 뒤 ⑥을 멈춘다. 사용자가 승인한 것은 보여 준 명령뿐이기 때문이다.
-   - 설치한 뒤 `command -v codegraph`로 다시 확인한다. curl 방식은 새 셸에서만 PATH에 잡힐 수 있으므로, 찾지 못하면 새 터미널을 열고 setup을 다시 실행하라고 안내하고 ⑥을 멈춘다.
+   - 설치하면 `command -v npm`이 있을 때 `npm i -g @colbymchenry/codegraph`를, 없을 때 `curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh`를 실행한다. 실행할 명령을 질문에 함께 보여 준다. 설치가 실패하면(예: npm 권한 오류) 다른 방법으로 자동으로 바꾸지 말고 오류를 보고한 뒤 ⑥을 멈추고 ⑦로 간다. 사용자가 승인한 것은 보여 준 명령뿐이기 때문이다.
+   - 설치한 뒤 `command -v codegraph`로 다시 확인한다. curl 방식은 새 셸에서만 PATH에 잡힐 수 있으므로, 찾지 못하면 새 터미널을 열고 setup을 다시 실행하라고 안내하고 ⑥을 멈추고 ⑦로 간다.
 2. **연결 층**: `claude mcp get codegraph`로 Claude Code에 연결됐는지 본다. 종료 코드가 0이면 연결된 것이므로 다음 층으로 간다(범위와 무관하게 찾는다).
    - 없으면 아래 전역 변경을 모두 알리고 연결할지 묻는다.
      - `~/.claude.json`: codegraph MCP 서버(user 범위)
@@ -154,6 +154,39 @@ codegraph는 코드의 심볼·호출 관계·의존성을 로컬 그래프(`.co
    - 세팅하면 저장소 루트에서 `codegraph init --yes`를 실행하고, `codegraph status --json`으로 `initialized: true`와 파일·노드 수를 확인한다.
    - `init`은 `.codegraph/`만 만든다. 그 안의 자체 `.gitignore`가 데이터베이스를 제외하므로 루트 `.gitignore`는 건드리지 않는다.
 
+### ⑦ fluent-korean 출력 스타일
+
+fluent-korean은 Claude가 조사·어미를 빠뜨리지 않고 의미가 분명한 한국어를 쓰게 하는 출력 스타일 플러그인이다. 스타일이 두 가지다.
+
+- `fluent-korean:fluent-korean`: Claude Code의 코딩 지침을 유지한다. 코드를 다루는 프로젝트용이다.
+- `fluent-korean:fluent-korean-not-coding`: 코딩 지침을 뺀다. 코드를 고치지 않는 작업용이다.
+
+전역(`~/.claude/settings.json`)에는 not-coding을 두고, 개발 프로젝트에서만 프로젝트 설정으로 코딩용을 덮어쓰는 구성을 권장한다. 설정은 local → project → user 순으로 우선하므로 프로젝트 값이 전역 값을 이긴다. 개발 프로젝트에 전역 not-coding이 그대로 적용되면 코딩 지침이 빠진 채 코드를 고치게 된다.
+
+`outputStyle` 값은 `<플러그인>:<스타일>` 형식이고 대소문자를 구분한다. 스타일 이름과 정확히 맞지 않으면 경고 없이 기본 스타일이 적용되므로 위 두 값을 그대로 쓴다.
+
+⑥까지 끝낸 뒤 진행한다. 플러그인 층 → 전역 층 → 프로젝트 층 순서로 본다. 플러그인 층과 전역 층은 기기 전역을 바꾸므로 반드시 묻고 나서 실행한다. 설정 파일을 바꿀 때는 다른 키를 건드리지 않고 `outputStyle`만 추가하거나 바꾼다. 파일이 없으면 `outputStyle` 하나만 담아 만든다. 파일이 있는데 JSON으로 읽을 수 없으면 고치거나 새로 쓰지 말고 그렇다고 보고한 뒤 그 파일은 건너뛴다. 새로 쓰면 다른 설정이 사라지기 때문이다.
+
+1. **플러그인 층**: `claude plugin list --json`에서 `id`가 `fluent-korean@`으로 시작하는 항목을 찾는다.
+   - 없으면 위 설명과 함께 `설치 (Recommended)` / `설치 안 함`을 묻는다. 스타일 지침이 시스템 프롬프트에 붙어 입력 토큰이 늘어난다는 점도 알린다. 설치하면 `claude plugin marketplace list --json`에 `name`이 `fluent-korean`인 마켓이 없을 때만 `claude plugin marketplace add snflkd/fluent-korean`을 실행하고, 이어서 `claude plugin install fluent-korean@fluent-korean --scope user`를 실행한다. 실행할 명령을 질문에 함께 보여 준다.
+   - 있는데 `enabled`가 `false`면 `claude plugin enable <id>`로 켤지 묻는다.
+   - 설치·활성화를 거절하거나 명령이 실패하면 오류를 보고하고 ⑦을 멈춘다. 플러그인 없이 스타일 값만 넣으면 기본 스타일이 적용될 뿐이기 때문이다.
+2. **전역 층**: `~/.claude/settings.json`의 `outputStyle`을 읽는다.
+   - `fluent-korean:fluent-korean-not-coding`이면 다음 층으로 간다.
+   - 없거나 다른 값이면 현재 값을 보여 주고 `not-coding으로 설정 (Recommended)` / `그대로 두기`를 묻는다. 다른 값이 있었다면, 바꾸면 모든 프로젝트의 기본 응답 스타일이 바뀐다고 알린다.
+3. **프로젝트 층**: 개발 프로젝트인지 정한다.
+   - ⑥ 프로젝트 층에서 사용자가 개발 프로젝트 여부에 답했거나 `세팅`을 골랐으면 그 결과를 쓴다. codegraph 인덱스가 이미 있고 노드 수(`nodeCount`)가 0보다 컸던 경우도 개발 프로젝트로 본다. 같은 질문을 두 번 하지 않기 위해서다. 자동 감지만 하고 사용자가 `세팅 안 함`을 고른 경우는 확인받은 것이 아니므로 다음 줄을 따른다.
+   - 그렇지 않으면 ⑥ 프로젝트 층의 기준(매니페스트·소스 파일)으로 감지한 근거를 보여 주고 `개발 프로젝트다` / `개발 프로젝트가 아니다`를 묻는다. 감지되면 `개발 프로젝트다 (Recommended)`를 첫 선택지로 두고, 감지되지 않으면 권장안 없이 묻는다.
+   - 개발 프로젝트가 아니면 프로젝트 설정을 바꾸지 않는다. 전역 값이 적용된다.
+   - 개발 프로젝트이면 `.claude/settings.local.json`, `.claude/settings.json` 순으로 처음 나오는 `outputStyle`을 본다. 이 값이 이 프로젝트에 실제로 적용된다. 이미 `fluent-korean:fluent-korean`이면 어느 파일인지 알리고 이 층을 끝낸다.
+   - 아니면 두 파일의 현재 `outputStyle`을 보여 주고 `fluent-korean:fluent-korean`을 어디에 넣을지 묻는다.
+     - `local (Recommended)`: `.claude/settings.local.json`. 나에게만 적용되고 커밋되지 않는다.
+     - `project`: `.claude/settings.json`. 커밋하면 팀 전체에 적용된다. 플러그인이 없는 팀원에게는 경고 없이 기본 스타일이 적용된다.
+     - `설정 안 함`
+   - `project`를 골랐는데 `.claude/settings.local.json`에 다른 `outputStyle`이 있으면 local 값이 project 값을 가린다고 알리고, local 값을 지울지 묻는다.
+   - `local`을 골랐으면 `git check-ignore -q .claude/settings.local.json`으로 커밋에서 빠지는지 확인한다. 빠지지 않으면 `.gitignore`에 `.claude/settings.local.json` 줄을 추가할지 묻는다(`.gitignore`가 없으면 만든다). 개인 설정이 커밋되지 않게 하려는 것이다. 이미 추적 중인 파일은 `.gitignore`로 빠지지 않으므로, `git ls-files`에 이 파일이 있으면 그렇다고 알리고 직접 확인하라고 안내한다.
+4. 바꾼 설정 파일을 다시 읽어 `outputStyle` 값이 들어갔고 JSON이 깨지지 않았는지 확인한다.
+
 ## 마무리
 
 1. `git status --short`로 바뀐 파일을 보여 주고, 설치한 것과 건너뛴 것을 나눠 보고한다.
@@ -162,4 +195,5 @@ codegraph는 코드의 심볼·호출 관계·의존성을 로컬 그래프(`.co
 4. ⑥에서 한 일을 보고한다.
    - Claude Code를 새로 연결했다면 Claude Code를 다시 시작해야 codegraph MCP 서버가 로드된다고 알린다.
    - 프로젝트를 세팅했다면 커밋할 파일은 `.codegraph/.gitignore` 하나뿐이고, 인덱스 데이터베이스는 공유되지 않으므로 다른 팀원도 각자 `codegraph init`을 실행해야 인덱스가 생긴다고 알린다.
-5. `/dev-harness:doctor`로 설치 상태를 점검할 수 있다고 안내한다.
+5. ⑦에서 바꾼 설정 파일과 값을 보고한다. 출력 스타일은 새 세션부터 적용되고, `/output-style`로 현재 스타일을 확인할 수 있다고 알린다. 출력 스타일은 메인 대화에만 적용되고 서브에이전트에는 적용되지 않는다는 점도 알린다.
+6. `/dev-harness:doctor`로 설치 상태를 점검할 수 있다고 안내한다.

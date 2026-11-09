@@ -1,7 +1,7 @@
 ---
 name: doctor
 description: 현재 프로젝트에 설치된 dev-harness 상태를 점검하고 문제를 보고한다. "하네스 점검", "하네스 진단", "harness doctor" 요청 시 사용.
-allowed-tools: Read Glob Grep Bash(git config *) Bash(git rev-parse *) Bash(git remote *) Bash(date *) Bash(ls *) Bash(command -v codegraph) Bash(claude mcp get codegraph) Bash(codegraph status --json) Bash(command -v gitleaks) Bash(gitleaks version)
+allowed-tools: Read Glob Grep Bash(git config *) Bash(git rev-parse *) Bash(git remote *) Bash(date *) Bash(ls *) Bash(command -v codegraph) Bash(claude mcp get codegraph) Bash(codegraph status --json) Bash(command -v gitleaks) Bash(gitleaks version) Bash(claude plugin list --json) Bash(git ls-files *)
 ---
 
 # dev-harness doctor
@@ -94,6 +94,21 @@ allowed-tools: Read Glob Grep Bash(git config *) Bash(git rev-parse *) Bash(git 
   - 8.25보다 낮거나 버전 번호가 아닌 문구가 나오면 `FAIL`(훅이 실행 오류로 모든 커밋을 막음). `command -v gitleaks` 경로를 함께 적는다.
   - 8.25 이상이면 버전을 `OK`에 적는다.
 - `.gitignore`: `secret-files`의 패턴 줄(주석 제외) 중 `.gitignore`에 없는 줄이 있으면 `INFO`로 나열한다(선택 설치. 훅이 커밋은 막는다).
+
+### 9. fluent-korean 출력 스타일
+
+선택 설치다. 하네스 동작을 막지 않는 개인 환경 설정이므로 `FAIL`은 쓰지 않는다. setup ⑦의 세 층을 차례로 보고, 층마다 한 줄로 보고하며 각각 합계에 센다. 권장 값은 전역 `fluent-korean:fluent-korean-not-coding`, 개발 프로젝트 `fluent-korean:fluent-korean`이다.
+
+- 아래 세 파일(`~/.claude/settings.json`, `.claude/settings.local.json`, `.claude/settings.json`) 중 JSON으로 읽을 수 없는 파일이 있으면 해당 층을 `WARN`(Claude Code가 이 파일의 설정을 적용하지 못함)으로 보고한다.
+- 플러그인: `claude plugin list --json`에서 `id`가 `fluent-korean@`으로 시작하는 항목을 찾는다. 명령 자체를 실행할 수 없으면 `INFO`(확인 불가), 항목이 없으면 `INFO`(설치 안 함)로 보고하고 이 항목의 나머지는 건너뛴다. `enabled`가 `false`면 `WARN`(스타일을 골라도 적용되지 않음). 해결: `claude plugin enable <id>`.
+- 전역: `~/.claude/settings.json`의 `outputStyle`을 본다.
+  - `fluent-korean:fluent-korean-not-coding`이면 `OK`.
+  - 없으면 `WARN`(fluent-korean이 적용되지 않음). 다른 값이면 값을 적어 `WARN`(사용자가 의도했을 수도 있다).
+  - 해결: `/dev-harness:setup`을 다시 실행하거나 `"outputStyle": "fluent-korean:fluent-korean-not-coding"`을 넣는다.
+- 프로젝트: `.claude/settings.local.json`, `.claude/settings.json` 순으로 처음 나오는 `outputStyle`이 이 프로젝트에 실제로 적용되는 값이다. 없으면 전역 값이 적용된다. doctor는 묻지 않으므로 개발 프로젝트 여부는 setup ⑥ 프로젝트 층의 기준(매니페스트·소스 파일)으로 감지한다. 7번에서 codegraph 인덱스가 있고 `nodeCount`가 0보다 크면 이것도 개발 프로젝트로 본다. setup과 판정을 맞추기 위해서다.
+  - 개발 프로젝트로 감지되고 적용 값이 `fluent-korean:fluent-korean`이면 어느 파일에서 왔는지 적어 `OK`. 아니면 `WARN`(코딩 지침이 빠진 스타일이나 기본 스타일이 적용됨. setup에서 개발 프로젝트가 아니라고 답했다면 무시해도 된다). 해결: `.claude/settings.local.json`에 `"outputStyle": "fluent-korean:fluent-korean"`을 넣는다.
+  - 감지되지 않으면 적용 값을 적어 `INFO`(개발 프로젝트가 아니면 전역 값이 맞다. 코드가 감지 기준 밖에 있을 수도 있다).
+- 위 세 파일 중 `outputStyle`이 대소문자를 무시하고 `fluent-korean`을 포함하는데 두 권장 값 중 어느 것과도 정확히 같지 않으면(대소문자, `fluent-korean:` 접두어 누락 등) 그 파일이 속한 층(전역 또는 프로젝트)의 줄을 `WARN`으로 하고 이유를 덧붙인다. 줄을 따로 만들거나 따로 세지 않는다. 이름이 정확히 맞지 않으면 경고 없이 기본 스타일이 적용되기 때문이다.
 
 ## 보고 형식
 
