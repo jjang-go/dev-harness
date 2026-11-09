@@ -1,11 +1,11 @@
 {
-  "name": "tykim-dev-harness",
-  "owner": { "name": "tykim" },
+  "name": "jjang-go",
+  "owner": { "name": "jjang-go" },
   "plugins": [
     {
       "name": "dev-harness",
       "source": "./",
-      "description": "프로젝트마다 tykim의 규칙으로 구성된 하네스를 초기 세팅해주는 플러그인"
+      "description": "프로젝트마다 직접 만든 규칙 세트(하네스)를 초기 세팅해주는 플러그인"
     }
   ]
 }

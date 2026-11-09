@@ -13,7 +13,7 @@
 
 ```
 /plugin marketplace add jjang-go/dev-harness
-/plugin install dev-harness@tykim-dev-harness
+/plugin install dev-harness@jjang-go
 ```
 
 ## 사용
@@ -30,8 +30,8 @@
 | 항목 | 설치 위치 |
 | --- | --- |
 | 커밋 메시지 템플릿 | `.gitmessage` (`git config commit.template`도 설정) |
-| 빈 소제목을 막는 커밋 훅 | `.githooks/commit-msg` (`git config core.hooksPath`도 설정) |
-| 비밀 파일·비밀값 커밋을 막는 훅과 규칙 | `.githooks/pre-commit`, `.githooks/secret-files`(비밀 파일 이름), `.gitleaks.toml`(비밀값 규칙), `.claude/rules/secret-scan.md`, `.gitignore` 비밀 파일 패턴(묻고 추가). 비밀값은 gitleaks가 있으면 gitleaks로, 없으면 최소 내장 패턴으로 검사한다. |
+| git 커밋 훅 | `.githooks/commit-msg`(커밋 메시지 형식 검사), `.githooks/pre-commit`(비밀 파일·비밀값 검사). `git config core.hooksPath`도 설정 |
+| 비밀값 검사 규칙 | `.githooks/secret-files`(비밀 파일 이름), `.gitleaks.toml`(비밀값 규칙), `.claude/rules/secret-scan.md`, `.gitignore` 비밀 파일 패턴(묻고 추가). 비밀값은 gitleaks가 있으면 gitleaks로, 없으면 최소 내장 패턴으로 검사한다. |
 | 커밋 메시지·README 작성 규칙 | `.claude/rules/commit-message.md`, `.claude/rules/readme-guidelines.md` |
 | PR·이슈 템플릿과 작성 규칙 | `.github/` 또는 `.gitlab/`, `.claude/rules/pr-issue-guidelines.md` |
 | 기능 명세 템플릿 | `docs/specs/TEMPLATE.md` |
@@ -58,7 +58,7 @@ templates/           # 프로젝트로 복사될 템플릿과 규칙
   platforms/         #   GitHub·GitLab PR/이슈 템플릿
   docs/              #   ARCHITECTURE.md, 기능 명세 템플릿
   gitmessage         #   커밋 메시지 템플릿
-  githooks/          #   빈 소제목을 막는 commit-msg, 비밀을 막는 pre-commit 훅과 비밀 파일 목록(secret-files)
+  githooks/          #   git 커밋 훅(commit-msg, pre-commit)과 비밀 파일 목록(secret-files)
   gitleaks.toml      #   비밀값 검사 규칙과 예외
   CLAUDE.md          #   코딩 지침
 ```
