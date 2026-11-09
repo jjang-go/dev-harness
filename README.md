@@ -83,4 +83,4 @@ claude plugin validate .
 
 ## 라이선스
 
-MIT. 포함한 서드파티 자료의 고지는 `THIRD_PARTY_NOTICES.md`에 있다.
+MIT. 전문은 `LICENSE`에 있다. 포함한 서드파티 자료의 고지는 `THIRD_PARTY_NOTICES.md`에 있다.
