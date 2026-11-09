@@ -1,0 +1,1 @@
+../../templates/rules/commit-message.md

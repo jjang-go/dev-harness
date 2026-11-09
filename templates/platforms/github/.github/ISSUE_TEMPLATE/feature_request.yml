@@ -1,0 +1,54 @@
+name: 기능 요청
+description: 새 기능이나 개선을 제안한다.
+title: "[기능] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        이 이슈에는 문제와 목표를 간결하게 적습니다. 구현 전에 필요한 상세 시나리오와 요구사항은 별도 명세 문서에 작성하고 아래에 링크해 주세요.
+        필수 항목은 문제와 수용 기준입니다.
+  - type: checkboxes
+    id: duplicate-check
+    attributes:
+      label: 중복 확인
+      options:
+        - label: 같은 요청의 기존 이슈가 없는지 검색했다.
+  - type: textarea
+    id: problem
+    attributes:
+      label: 문제
+      description: 지금 무엇이 불편하거나 빠져 있는지, 누가 겪는지 한 문단으로 적는다. 해결책이 아니라 문제를 쓴다.
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: 목표
+      description: 이 기능이 완성되면 어떤 상태가 되는지 적는다.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 수용 기준
+      description: 완료를 판단할 수 있는 측정 가능한 조건. 구현 방식이 아니라 결과를 적는다.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: non-goals
+    attributes:
+      label: 비목표
+      description: 이번 범위에 포함하지 않는 것. 범위가 번지는 것을 막는다.
+  - type: input
+    id: spec-link
+    attributes:
+      label: 상세 명세 링크
+      description: 상세 명세 문서가 있다면 경로나 링크를 적는다.
+      placeholder: docs/specs/로그인-토큰-갱신.md
+  - type: input
+    id: file-hints
+    attributes:
+      label: 관련 파일 경로 힌트
+      description: 변경이 필요할 것 같은 파일이나 모듈을 안다면 적는다.

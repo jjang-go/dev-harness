@@ -1,0 +1,22 @@
+#!/bin/sh
+# 본문 소제목([배경], [변경], [영향], [검증]) 아래에 내용이 없으면 커밋을 막는다.
+# 내용 없는 소제목은 통째로 지우는 것이 커밋 메시지 규칙이다.
+
+awk '
+  /^# -+ >8 -+$/ { exit }                      # 이 줄 아래는 git이 버리는 diff
+  /^#/ { next }                                # 주석
+  /^\[(배경|변경|영향|검증)\][ \t]*$/ {
+    if (open) empty = empty " " head
+    head = $0; open = 1; next
+  }
+  open && /^[A-Z][A-Za-z-]*: / { next }        # 트레일러는 내용으로 치지 않는다
+  open && /[^ \t]/ { open = 0 }
+  END {
+    if (open) empty = empty " " head
+    if (empty != "") {
+      print "커밋 거부: 내용 없는 소제목이 있다 ->" empty > "/dev/stderr"
+      print "해당 소제목을 지우거나 내용을 채운 뒤 다시 커밋한다." > "/dev/stderr"
+      exit 1
+    }
+  }
+' "$1"
