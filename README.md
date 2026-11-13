@@ -20,7 +20,7 @@
 
 | 명령 | 하는 일 |
 | --- | --- |
-| `/dev-harness:setup` | 현재 프로젝트에 하네스를 설치한다. 플랫폼, 브랜치 전략, CLAUDE.md, ARCHITECTURE.md, codegraph 설치 여부, fluent-korean 출력 스타일을 차례로 묻는다. |
+| `/dev-harness:setup` | 현재 프로젝트에 하네스를 설치한다. 플랫폼, 브랜치 전략, CLAUDE.md, ARCHITECTURE.md, codegraph 설치 여부, fluent-korean 출력 스타일, claude-obsidian 지식 볼트를 차례로 묻는다. |
 | `/dev-harness:doctor` | 설치 상태를 점검하고 문제를 보고한다. 파일은 고치지 않는다. |
 
 `setup`은 기존 파일을 말없이 덮어쓰지 않고, 설치가 끝나도 커밋하지 않는다.
@@ -41,6 +41,7 @@
 | 서드파티 고지 (선택) | `THIRD_PARTY_NOTICES.md` |
 | codegraph 코드 그래프 (선택, 묻고 설치) | CLI·Claude Code 연결은 기기 전역, 인덱스는 `.codegraph/` |
 | fluent-korean 출력 스타일 (선택, 묻고 설정) | 플러그인·전역 스타일(`fluent-korean-not-coding`)은 기기 전역 `~/.claude/settings.json`, 개발 프로젝트의 코딩용 `fluent-korean`은 `.claude/settings.local.json` 또는 `.claude/settings.json` |
+| claude-obsidian 지식 볼트 (선택, 묻고 설치) | 플러그인과 볼트 경로(`env.CLAUDE_OBSIDIAN_VAULT`)는 기기 전역 `~/.claude/settings.json`. 볼트 초기화, Python 3.11 이상 설치도 묻고 진행한다. 프로젝트 노트를 구분하는 규칙은 `.claude/rules/obsidian-vault.md`에 두고 `.git/info/exclude`로 커밋에서 뺀다. |
 
 ## 구조
 

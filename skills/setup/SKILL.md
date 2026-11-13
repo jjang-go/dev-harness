@@ -1,6 +1,6 @@
 ---
 name: setup
-description: 현재 프로젝트에 dev-harness 규칙 세트(브랜치 전략, 커밋·README·PR·이슈 규칙, 비밀값 커밋 방지, CLAUDE.md, ARCHITECTURE.md)를 초기 세팅한다. "하네스 세팅", "하네스 초기화", "harness setup" 요청 시 사용.
+description: 현재 프로젝트에 dev-harness 규칙 세트(브랜치 전략, 커밋·README·PR·이슈 규칙, 비밀값 커밋 방지, CLAUDE.md, ARCHITECTURE.md, Obsidian 지식 볼트)를 초기 세팅한다. "하네스 세팅", "하네스 초기화", "harness setup" 요청 시 사용.
 disable-model-invocation: true
 ---
 
@@ -187,6 +187,98 @@ fluent-korean은 Claude가 조사·어미를 빠뜨리지 않고 의미가 분�
    - `local`을 골랐으면 `git check-ignore -q .claude/settings.local.json`으로 커밋에서 빠지는지 확인한다. 빠지지 않으면 `.gitignore`에 `.claude/settings.local.json` 줄을 추가할지 묻는다(`.gitignore`가 없으면 만든다). 개인 설정이 커밋되지 않게 하려는 것이다. 이미 추적 중인 파일은 `.gitignore`로 빠지지 않으므로, `git ls-files`에 이 파일이 있으면 그렇다고 알리고 직접 확인하라고 안내한다.
 4. 바꾼 설정 파일을 다시 읽어 `outputStyle` 값이 들어갔고 JSON이 깨지지 않았는지 확인한다.
 
+### ⑧ claude-obsidian 지식 볼트
+
+claude-obsidian(MIT 라이선스)은 Obsidian 볼트를 출처가 남는 위키로 관리하는 플러그인이다. `/claude-obsidian:save`(대화 결과 저장), `/claude-obsidian:wiki-ingest`(자료 정리), `/claude-obsidian:wiki-query`(볼트 검색), `/claude-obsidian:autoresearch`(웹 조사) 같은 스킬을 제공한다. 볼트를 바꾸는 작업은 모두 미리 보기를 거쳐 사용자가 승인한 트랜잭션으로만 적용된다. 대화를 자동으로 기록하거나 정해진 시각에 웹을 조사하는 기능은 의도적으로 없다. 검토를 거치지 않은 내용과 비밀값이 볼트에 쌓이지 않게 하기 위해서다.
+
+여러 프로젝트가 볼트 하나를 함께 쓰는 구성을 권장한다. 그래서 플러그인과 볼트 경로는 기기 전역에 두고, 프로젝트는 태그와 허브 페이지로 구분한다.
+
+⑦까지 끝낸 뒤 진행한다. 플러그인 층 → Python 층 → 볼트 경로 층 → 초기화 층 → 프로젝트 층 순서로 본다. 프로젝트 층을 뺀 나머지는 기기 전역을 바꾸므로 반드시 묻고 나서 실행한다.
+
+1. **플러그인 층**: `claude plugin list --json`에서 `id`가 `claude-obsidian@`으로 시작하고, `scope`가 `user`이거나 `projectPath`가 현재 저장소 루트와 같은 항목을 찾는다. 이 목록에는 다른 프로젝트에만 설치된 항목도 나오므로, 그런 항목은 이 프로젝트에서 쓸 수 없는 것으로 본다. 여러 개가 남으면 `user` 범위를 쓴다.
+   - 없으면 위 설명과 함께 아래를 알리고 `설치 (Recommended)` / `설치 안 함`을 묻는다.
+     - 모든 프로젝트에서 같은 볼트를 쓰도록 user 범위(전역)로 설치한다.
+     - Python 3.11 이상이 필요하다. 다음 층에서 확인한다.
+     - 세션 시작 훅은 기본적으로 아무것도 출력하지 않는다. 응답이 끝날 때마다 실행되는 Stop 훅은 볼트의 트랜잭션이나 잠금에 이상이 있을 때만 경고한다. Python이 부족하면 이 훅이 매 응답 끝에 오류를 낼 수 있다.
+   - 설치하면 `claude plugin marketplace list --json`에 `name`이 `agricidaniel-claude-obsidian`인 마켓이 없을 때만 `claude plugin marketplace add AgriciDaniel/claude-obsidian`을 실행하고, 이어서 `claude plugin install claude-obsidian@agricidaniel-claude-obsidian --scope user`를 실행한다. 실행할 명령을 질문에 함께 보여 준다.
+   - 찾은 항목의 `enabled`가 `false`면 `claude plugin enable <id>`로 켤지 묻는다.
+   - 설치·활성화를 거절하거나 명령이 실패하면 오류를 보고하고 ⑧을 멈춘다. 플러그인 없이는 나머지 층이 쓸모없기 때문이다.
+   - 새로 설치했든 원래 있었든, 쓸 항목의 `installPath`를 기록한다(설치했다면 `claude plugin list --json`을 다시 읽는다). 초기화 층에서 쓰는 CLI는 `<installPath>/scripts/claude-obsidian.py`다. 아래에서는 이 경로를 `CORE`라고 부른다.
+2. **Python 층**: 플러그인의 훅과 CLI는 `PATH`에서 처음 찾은 `python3`로 실행된다. 이 셸의 `PATH`는 Claude Code가 훅을 실행할 때의 `PATH`와 같다고 보고 확인한다.
+   1. `command -v python3`와 `python3 --version`으로 경로와 버전을 얻는다. `which -a python3`로 `PATH`에 있는 다른 `python3`도 함께 기록한다.
+   2. 버전 지원 상태를 조회한다. `curl -fsSL --max-time 10 https://endoflife.date/api/python.json`의 각 항목은 `cycle`(예: `3.13`), `latest`(그 계열의 최신 패치), `eol`(지원 종료일)을 담는다. 오늘 날짜는 `date +%F`로 얻는다. 아래 순서로 판정한다.
+      - 계열이 3.11보다 낮다 → **부족**: 플러그인이 동작하지 않는다.
+      - `eol`이 지났다 → **지원 종료**: 보안 수정을 더 받지 못한다.
+      - 버전이 `latest`보다 낮다 → **패치 누락**: 보안 수정은 패치 버전으로 나오므로, 이미 공개된 취약점이 고쳐지지 않았을 수 있다.
+      - 모두 아니면 **정상**이다. 다음 층으로 간다.
+      - 조회에 실패하면 취약 여부는 판단할 수 없다고 알리고 3.11 이상인지만 본다.
+   3. 설치할 버전을 정한다.
+      - 패치 누락이면 같은 계열의 `latest`로 올린다. 계열이 바뀌지 않아 다른 프로젝트에 주는 영향이 가장 작다.
+      - 부족·지원 종료이면 `eol`이 지나지 않은 3.11 이상 계열 중 두 번째로 높은 계열의 `latest`로 정한다. 그런 계열이 하나뿐이면 그 계열을 쓴다. 가장 높은 계열은 막 나와서 관리 도구에 아직 없을 수 있기 때문이다.
+      - 조회에 실패했다면 버전을 정할 수 없으므로 설치를 제안하지 않는다. 3.11 이상이며 지원 중인 계열의 최신 패치를 설치하라고 안내하고 넘어간다.
+   4. 쓸 관리 도구를 고른다. `command -v pyenv`·`mise`·`asdf`·`uv`·`brew`로 설치된 도구를 보고, 지금 `python3`를 어느 도구가 관리하는지 판단한다.
+      - 먼저 `command -v python3`가 돌려준 경로 그대로에 `.pyenv/shims`, `mise/shims`, `.asdf/shims`가 있는지 본다. 있으면 그 도구다. shim은 관리 도구 실행 파일로 이어지는 링크일 수 있어서, 링크를 따라가면 도구를 알아볼 수 없게 되기 때문이다.
+      - shim이 아니면 `realpath "$(command -v python3)"`로 얻은 실제 경로를 아래 표에 위에서부터 대어 보고, 처음 맞는 행으로 판단한다. 링크를 따라가야 Homebrew나 uv가 만든 링크를 구별할 수 있기 때문이다.
+
+      | 실제 경로에 포함된 것 | 관리 주체 |
+      | --- | --- |
+      | `.pyenv/` | pyenv |
+      | `mise/` | mise |
+      | `.asdf/` | asdf |
+      | `uv/python/` | uv |
+      | `/Cellar/` 또는 `/opt/homebrew/` | Homebrew |
+      | `/Library/Frameworks/Python.framework/` | python.org 설치 파일 |
+      | `/usr/bin/`, `/Library/Developer/CommandLineTools/`, `/Applications/Xcode.app/` | 시스템 Python |
+
+      지금 `python3`를 관리하는 도구를 먼저 쓴다. 이미 쓰는 도구로 버전을 바꿔야 PATH와 설정이 서로 충돌하지 않기 때문이다. 시스템 Python, python.org 설치, 판단할 수 없는 경로이면 설치된 도구 중 pyenv, mise, asdf, uv, Homebrew 순서로 고른다. 시스템 Python 자체는 고치지 않는다. 운영 체제가 관리하는 파일이기 때문이다.
+
+      | 도구 | 명령 |
+      | --- | --- |
+      | pyenv | `pyenv install <버전>` 후 `pyenv global <버전>`. `pyenv install --list`에 버전이 없으면 정의 목록이 낡은 것이므로 먼저 `brew upgrade pyenv`(Homebrew 설치) 또는 `pyenv update`를 제안한다. 빌드에 필요한 의존성이 없으면 설치가 실패할 수 있다고 알린다. |
+      | mise | `mise use -g python@<버전>` |
+      | asdf | `asdf plugin list`에 `python`이 없으면 먼저 `asdf plugin add python`. 이어서 `asdf install python <버전>`, 0.16 이상이면 `asdf set -u python <버전>`, 그 미만이면 `asdf global python <버전>` (`asdf --version`으로 확인) |
+      | uv | `uv python install <버전> --default` (`~/.local/bin`에 `python3`를 만든다). `uv python install --help`에 `--default`가 없는 오래된 uv면 `uv self update`(Homebrew 설치는 `brew upgrade uv`)를 먼저 제안한다. |
+      | Homebrew | 그 계열이 이미 설치돼 있으면 `brew upgrade python@<계열>`, 아니면 `brew install python@<계열>`. 버전을 패치 단위로 고를 수 없어 Homebrew에 반영된 최신 패치가 설치되므로, 설치 뒤에도 패치 누락이 남을 수 있다. 또 기본 계열이 아니면 `python3` 이름을 연결하지 않으므로, 설치 뒤 `python3`가 바뀌지 않으면 6번 안내를 따른다. |
+
+      어느 도구도 없으면 설치하지 않고 python.org 설치 파일이나 위 도구 중 하나를 쓰라고 안내한 뒤 넘어간다.
+   5. 현재 경로·버전, 판정과 근거(지원 종료일, 최신 패치), 설치할 버전과 고른 이유, 관리 도구와 고른 이유, 실행할 명령을 보여 주고 묻는다. 기기 전역의 기본 Python이 바뀌어 다른 프로젝트에도 영향이 간다는 점도 알린다. 부족이면 `설치 (Recommended)` / `설치 안 함`, 지원 종료·패치 누락이면 `업데이트 (Recommended)` / `그대로 두기`로 묻는다. 설치가 실패하면 다른 도구로 자동으로 바꾸지 말고 오류를 보고한다. 사용자가 승인한 것은 보여 준 명령뿐이기 때문이다.
+   6. 설치한 뒤 `command -v python3`와 `python3 --version`을 다시 본다. 버전이 그대로면 원인을 찾아 안내한다.
+      - 저장소에 `.python-version`이나 `.tool-versions`가 있으면 그 파일이 전역 설정을 가린다. 파일 내용을 보여 주고, 이 프로젝트의 Python 버전이 정해져 있다는 뜻이므로 사용자가 직접 판단하게 한다.
+      - 그렇지 않으면 `which -a python3`로 `PATH` 순서를 보여 주고, 새 `python3`가 있는 디렉터리(예: `~/.pyenv/shims`, `~/.local/bin`)를 셸 설정에서 `/usr/bin`보다 앞에 두라고 안내한다.
+      - 어느 경우든 Claude Code는 실행될 때의 `PATH`를 훅에 넘기므로, 고친 뒤 새 터미널에서 Claude Code를 다시 시작해야 반영된다고 알린다.
+   - 결과가 부족이면(거절, 실패, 반영되지 않음 포함) 다음 층은 진행하되 초기화 층은 건너뛴다. CLI를 실행할 수 없기 때문이다. 플러그인 스킬과 훅도 실패한다고 알린다.
+3. **볼트 경로 층**: `~/.claude/settings.json`의 `env.CLAUDE_OBSIDIAN_VAULT`를 읽는다. 플러그인은 이 환경 변수를 프로젝트의 `.claude-obsidian.json`보다 먼저 보므로, 여기에 경로를 두면 모든 프로젝트가 같은 볼트를 쓴다.
+   - 값이 있고 그 디렉터리가 있으면 경로를 알리고 다음 층으로 간다.
+   - 값이 있는데 디렉터리가 없으면 그렇다고 알리고 `이 경로에 새로 만들기 (Recommended)`와 아래 후보·새 경로를 함께 보여 준다. 새로 만들기를 고르면 값은 그대로 두고 초기화 층에서 만든다.
+   - 값이 없으면 Obsidian의 볼트 목록에서 후보를 찾는다. 목록 파일은 macOS `~/Library/Application Support/obsidian/obsidian.json`, Linux `~/.config/obsidian/obsidian.json`, Windows `%APPDATA%\obsidian\obsidian.json`이고, `vaults` 아래 각 항목의 `path`가 볼트 경로다. 실제로 있는 디렉터리만 후보로 삼는다.
+   - 후보를 선택지로 보여 주고(가장 최근 `ts` 순으로 최대 3개, 첫 번째에 `(Recommended)`) 새 경로는 직접 입력하게 한다. 후보가 없으면 새 경로를 입력받는다(예: `~/Documents/Obsidian/knowledge`). 새 경로는 아직 없는 디렉터리여도 된다. 초기화 층에서 만든다.
+   - 입력한 경로의 `~`는 홈 디렉터리로 풀어 절대 경로로 바꾼다. 경로가 지금 프로젝트의 git 저장소 안에 있으면 노트가 프로젝트에 커밋될 수 있다고 알리고 다시 묻는다.
+   - 고른 경로를 `env.CLAUDE_OBSIDIAN_VAULT`에 넣는다. ⑦과 같이 다른 키는 건드리지 않는다. 파일이 없으면 `env` 하나만 담아 만들고, `env`가 없으면 추가한다. 파일이 JSON으로 읽을 수 없으면 고치지 말고 보고한 뒤 경로를 정하지 않은 것으로 본다. 바꾼 뒤 파일을 다시 읽어 값이 들어갔고 JSON이 깨지지 않았는지 확인한다. 아래를 함께 알린다.
+     - 환경 변수는 새 세션부터 적용된다.
+     - 특정 프로젝트만 다른 볼트를 쓰려면 그 프로젝트의 `.claude/settings.local.json`에서 `env.CLAUDE_OBSIDIAN_VAULT`를 덮어쓴다.
+     - 세션 시작 때 볼트의 최근 맥락(`wiki/hot.md`)을 주입하는 `CLAUDE_OBSIDIAN_SESSION_CONTEXT`는 설정하지 않는다. 볼트 하나를 여러 프로젝트가 쓰므로 다른 프로젝트의 맥락이 섞이기 때문이다.
+   - 이 프로젝트의 `.claude/settings.local.json`이나 `.claude/settings.json`에 다른 `env.CLAUDE_OBSIDIAN_VAULT`가 있으면, 이 프로젝트에서는 그 값이 전역 값을 가린다고 알린다.
+   - 경로를 정하지 않으면 초기화 층을 건너뛴다.
+4. **초기화 층**: 볼트 경로 층에서 정한 경로를 쓴다. 이 세션에는 아직 환경 변수가 없으므로 경로를 인자로 넘긴다. 아래 명령은 모두 같은 흐름을 따른다.
+   - 먼저 `--apply` 없이 미리 보기를 실행한다. 출력 JSON의 `status`가 `noop`이면 바꿀 것이 없으므로 다음 층으로 간다. `dry-run`이면 `changed_paths`(만들거나 바꿀 파일)를 보여 주고 적용할지 묻는다.
+   - 적용은 같은 명령에 `--generated-at <미리 보기의 generated_at> --approved-plan-sha256 <미리 보기의 approved_plan_sha256> --apply`를 붙여 실행한다. 승인 해시는 시각에 묶여 있으므로 미리 보기의 `generated_at`을 그대로 넘겨야 한다.
+   - `--force`는 쓰지 않는다. 기존 파일을 바꾸게 되기 때문이다. 오류가 나면 그대로 보고하고 다음 층으로 간다.
+   - 적용한 뒤 `python3 "$CORE" doctor --vault <경로>`로 볼트를 확인한다.
+
+   경로 상태에 따라 명령을 고른다.
+
+   - `.claude-obsidian.json`과 `wiki/`가 모두 있으면 이미 초기화된 볼트다. 알리고 다음 층으로 간다.
+   - `wiki/`는 있는데 `.claude-obsidian.json`이 없으면 예전 형식의 볼트다. 출처 원장과 볼트 설정을 더하는 이전이 필요하다고 설명하고 `이전 (Recommended)` / `이전 안 함`을 묻는다. 이전 명령은 `python3 "$CORE" migrate --vault <경로>`다. 기존 노트는 바꾸지 않는다.
+   - 경로가 없거나 빈 디렉터리이면 `init`을 쓴다. 명령은 `python3 "$CORE" init <경로>`다. `init`은 경로의 상위 디렉터리가 있어야 하므로, 없으면 `mkdir -p <상위 디렉터리>`를 실행할지 함께 묻는다.
+   - 그 밖에(기존 Obsidian 볼트나 내용이 있는 폴더) `adopt`를 쓴다. 명령은 `python3 "$CORE" adopt <경로>`다. `init`은 기존 파일과 겹치면 멈추지만 `adopt`는 내용이 다른 기존 파일을 건너뛰기 때문이다.
+   - `init`·`adopt`는 묻기 전에 무엇이 생기는지 설명하고 `초기화 (Recommended)` / `초기화 안 함`을 묻는다. 생기는 것은 `wiki/` 아래 색인·로그·요약·개요 페이지와 출처·주장 원장(`wiki/meta/ledgers/`), `inbox/`, `.raw/`, `.claude-obsidian.json`, `.gitignore`, 그리고 Obsidian 설정 파일(`.obsidian/` 아래 앱·화면·그래프 설정과 색상 스니펫)이다. 기존 볼트에서는 같은 이름의 파일을 바꾸지 않는다.
+5. **프로젝트 층**: 이 프로젝트의 노트를 구분하는 규칙을 설치한다. 볼트의 폴더는 노트 유형으로만 나뉘므로, 규칙이 없으면 프로젝트 사이에 노트가 섞인다. 이 규칙은 내 볼트를 위한 개인 설정이므로 저장소에 커밋하지 않는다.
+   1. 프로젝트 이름을 정한다. `.claude/rules/obsidian-vault.md`가 이미 있으면 첫 줄 `<!-- obsidian-vault: <이름> -->` 표식의 이름을 알리고 유지할지 묻는다. 없으면 `basename "$(git rev-parse --show-toplevel)"`에서 영문자·숫자·`-`·`_`가 아닌 문자를 `-`로 바꾼 값을 기본값으로 `<기본값> (Recommended)`를 보여 주고, 다른 이름은 직접 입력하게 한다. 바꾼 결과가 `-`와 `_`뿐이면 기본값 없이 입력받는다.
+   2. 이름은 영문자, 숫자, `-`, `_`만 쓴다. Obsidian 태그와 파일 이름에 그대로 쓰이기 때문이다. 입력한 이름에 다른 문자가 있으면 다시 묻는다.
+   3. 볼트 경로를 알고 있고 `<볼트>/wiki/entities/<이름>.md`가 이미 있으면 첫 몇 줄을 보여 주고 같은 프로젝트인지 묻는다. 디렉터리 이름이 같은 다른 저장소의 허브일 수 있기 때문이다. 다른 프로젝트라면 새 이름을 받는다.
+   4. `T/rules/obsidian-vault.md`의 `<프로젝트>`를 모두 이름으로 바꿔 `.claude/rules/obsidian-vault.md`로 설치한다. 첫 줄 표식은 지우지 않는다. `doctor`가 이 표식을 읽는다. 파일이 이미 있으면 이름을 바꾼 템플릿과 비교해 "충돌 처리"를 따른다.
+   5. `git rev-parse --git-path info/exclude`로 얻은 파일에 `/.claude/rules/obsidian-vault.md` 줄이 없으면 추가한다. 앞의 `/`는 저장소 루트의 그 파일만 가리키게 한다. 파일이나 상위 `info/` 디렉터리가 없으면 만든다. `.gitignore`와 달리 이 파일은 커밋되지 않으므로, 팀 저장소에 흔적을 남기지 않고 이 기기에서만 커밋을 막는다. 추가한 뒤 `git check-ignore -q .claude/rules/obsidian-vault.md`로 확인한다. `git ls-files`에 이미 이 파일이 있으면 제외 설정이 적용되지 않는다고 알리고 직접 확인하라고 안내한다.
+
 ## 마무리
 
 1. `git status --short`로 바뀐 파일을 보여 주고, 설치한 것과 건너뛴 것을 나눠 보고한다.
@@ -196,4 +288,10 @@ fluent-korean은 Claude가 조사·어미를 빠뜨리지 않고 의미가 분�
    - Claude Code를 새로 연결했다면 Claude Code를 다시 시작해야 codegraph MCP 서버가 로드된다고 알린다.
    - 프로젝트를 세팅했다면 커밋할 파일은 `.codegraph/.gitignore` 하나뿐이고, 인덱스 데이터베이스는 공유되지 않으므로 다른 팀원도 각자 `codegraph init`을 실행해야 인덱스가 생긴다고 알린다.
 5. ⑦에서 바꾼 설정 파일과 값을 보고한다. 출력 스타일은 새 세션부터 적용되고, `/output-style`로 현재 스타일을 확인할 수 있다고 알린다. 출력 스타일은 메인 대화에만 적용되고 서브에이전트에는 적용되지 않는다는 점도 알린다.
-6. `/dev-harness:doctor`로 설치 상태를 점검할 수 있다고 안내한다.
+6. ⑧에서 한 일을 층별로 보고한다.
+   - 플러그인을 설치했거나 볼트 경로를 바꿨다면 Claude Code를 다시 시작해야 스킬과 환경 변수가 적용된다고 알린다.
+   - Python이 부족한 상태로 남았다면 플러그인이 동작하지 않는다는 점을 다시 알린다.
+   - 볼트 경로를 정했는데 그 디렉터리가 아직 없으면(초기화를 거절했거나 실패한 경우) 그렇다고 알린다. 이 상태에서는 볼트 작업이 모두 실패하고 doctor도 `FAIL`로 보고하므로, setup을 다시 실행해 초기화해야 한다.
+   - 프로젝트 규칙은 커밋되지 않으므로, 다른 기기에서 이 저장소를 받으면 setup을 다시 실행해야 한다고 알린다.
+   - 저장은 자동으로 되지 않으며, 남기고 싶은 결과가 나오면 `/claude-obsidian:save`를 직접 실행한다고 안내한다.
+7. `/dev-harness:doctor`로 설치 상태를 점검할 수 있다고 안내한다.
