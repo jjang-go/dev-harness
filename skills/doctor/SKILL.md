@@ -112,7 +112,7 @@ allowed-tools: Read Glob Grep Bash(git config *) Bash(git rev-parse *) Bash(git 
 
 ### 10. claude-obsidian 지식 볼트
 
-선택 설치다. setup ⑧의 층을 차례로 보고, 층마다 한 줄로 보고하며 각각 합계에 센다. 설치하지 않았으면 `INFO`로 끝나지만, 설치했는데 동작하지 않거나 점검할 수 없는 상태(Python 부족, 볼트 경로의 디렉터리 없음, 규칙 표식 손상)는 7·9번과 달리 `FAIL`로 본다. 앞의 둘은 모든 볼트 작업을 실패하게 하고, 표식이 손상되면 프로젝트 구분 규칙을 점검할 수 없어 노트가 섞여도 알아차리지 못하기 때문이다.
+선택 설치다. setup ⑧의 층을 차례로 보고, 층마다 한 줄로 보고하며 각각 합계에 센다. 설치하지 않았으면 `INFO`로 끝나지만, 설치했는데 동작하지 않거나 점검할 수 없는 상태(Python 부족, 볼트 경로의 디렉터리 없음·읽기 불가, 규칙 표식 손상)는 7·9번과 달리 `FAIL`로 본다. 앞의 둘은 모든 볼트 작업을 실패하게 하고, 표식이 손상되면 프로젝트 구분 규칙을 점검할 수 없어 노트가 섞여도 알아차리지 못하기 때문이다.
 
 - 플러그인: `claude plugin list --json`에서 `id`가 `claude-obsidian@`으로 시작하고, `scope`가 `user`이거나 `projectPath`가 현재 저장소 루트와 같은 항목을 찾는다. 다른 프로젝트에만 설치된 항목은 이 프로젝트에서 쓸 수 없으므로 세지 않는다. 여러 개가 남으면 `user` 범위를 본다. 명령 자체를 실행할 수 없으면 `INFO`(확인 불가), 항목이 없으면 `INFO`(설치 안 함)로 보고하고 이 항목의 나머지는 건너뛴다. `enabled`가 `false`면 `WARN`(스킬과 훅이 동작하지 않음). 해결: `claude plugin enable <id>`. 남은 항목이 project·local 범위뿐이면 `INFO`(이 프로젝트에서만 쓸 수 있음. 여러 프로젝트에서 같은 볼트를 쓰려면 user 범위로 설치).
 - Python: `command -v python3`와 `python3 --version`을 본다. 플러그인의 훅과 CLI가 이 `python3`로 실행된다.
@@ -122,9 +122,11 @@ allowed-tools: Read Glob Grep Bash(git config *) Bash(git rev-parse *) Bash(git 
 - 볼트 경로: `.claude/settings.local.json`, `.claude/settings.json`, `~/.claude/settings.json` 순으로 처음 나오는 `env.CLAUDE_OBSIDIAN_VAULT`가 이 프로젝트에 실제로 적용되는 값이다. 어느 파일에서 왔는지 함께 적는다. JSON으로 읽을 수 없는 파일이 있으면 `WARN`(Claude Code가 이 파일의 설정을 적용하지 못함).
   - 값이 없으면 `WARN`(스킬이 현재 디렉터리와 그 위에서만 볼트를 찾으므로 다른 프로젝트에서는 볼트를 찾지 못함). 해결: `/dev-harness:setup`을 다시 실행하거나 `~/.claude/settings.json`의 `env`에 `"CLAUDE_OBSIDIAN_VAULT": "<볼트 절대 경로>"`를 넣는다.
   - 값의 디렉터리가 없으면 `FAIL`(볼트를 찾지 못해 모든 작업이 중단됨).
+  - 디렉터리가 있는데 `ls -A "<경로>"`가 `Operation not permitted`로 실패하면 `FAIL`(macOS가 이 터미널 앱의 접근을 막아 모든 볼트 작업이 실패함. Claude Code 샌드박스 때문이 아님). 해결: 시스템 설정 → 개인정보 보호 및 보안 → 전체 디스크 접근 권한(또는 파일 및 폴더 → iCloud Drive)에서 Claude Code를 실행하는 터미널 앱을 허용하고, 터미널을 완전히 종료한 뒤 다시 연다.
+  - 경로에 `Mobile Documents`, `CloudStorage`, `Dropbox`, `OneDrive`, `Google Drive`가 들어 있으면 같은 줄에 `INFO`로 덧붙인다(동기화 폴더. claude-obsidian은 동기화 중 안전성을 보장하지 않으므로 동기화가 끝난 뒤 한 기기에서만 쓴다).
   - 프로젝트 파일에서 온 값이면 `INFO`(이 프로젝트만 다른 볼트를 씀. 의도했을 수도 있다).
   - 위 세 파일 중 `env.CLAUDE_OBSIDIAN_SESSION_CONTEXT`가 `"1"`인 파일이 있으면 같은 줄에 `WARN`으로 덧붙인다(다른 프로젝트의 최근 맥락이 세션에 섞임).
-- 볼트 상태: 볼트 경로의 디렉터리가 있을 때만 본다. 경로에 `.claude-obsidian.json`과 `wiki/`가 모두 있으면 `OK`. `wiki/`만 있으면 `WARN`(예전 형식. 출처 원장과 볼트 설정이 없음). `wiki/`가 없으면 `WARN`(초기화되지 않음). 두 경우 모두 해결: `/dev-harness:setup`을 다시 실행하면 미리 보기를 보여 주고 이전하거나 초기화한다.
+- 볼트 상태: 볼트 경로의 디렉터리가 있고 읽을 수 있을 때만 본다. 읽을 수 없으면 파일이 있는지 판단할 수 없으므로 건너뛴다. 경로에 `.claude-obsidian.json`과 `wiki/`가 모두 있으면 `OK`. `wiki/`만 있으면 `WARN`(예전 형식. 출처 원장과 볼트 설정이 없음). `wiki/`가 없으면 `WARN`(초기화되지 않음). 두 경우 모두 해결: `/dev-harness:setup`을 다시 실행하면 미리 보기를 보여 주고 이전하거나 초기화한다.
 - 프로젝트 규칙: `.claude/rules/obsidian-vault.md`가 없으면 `INFO`(이 프로젝트 노트에 태그와 허브가 붙지 않아 다른 프로젝트 노트와 섞임). 이 항목의 나머지는 건너뛴다.
   - 첫 줄이 `<!-- obsidian-vault: <이름> -->` 형태이고 `<이름>`이 영문자·숫자·`-`·`_`로만 되어 있는지 본다. 아니면 `FAIL`(표식을 지웠거나 이름이 태그로 쓸 수 없음). 표식이 유효하면 이름을 `OK`에 적고, `T/rules/obsidian-vault.md`의 `<프로젝트>`를 이 이름으로 바꾼 내용과 비교한다.
   - `git check-ignore -q .claude/rules/obsidian-vault.md`가 실패하면 `WARN`(개인 볼트 규칙이 팀 저장소에 커밋될 수 있음). 해결: `git rev-parse --git-path info/exclude`가 가리키는 파일에 `/.claude/rules/obsidian-vault.md` 줄을 추가한다. `git ls-files`에 이미 있으면 추적 중이라 제외되지 않는다고 함께 적는다.
