@@ -1,6 +1,6 @@
 {
   "name": "dev-harness",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "프로젝트마다 직접 만든 규칙 세트(하네스)를 초기 세팅해주는 플러그인",
   "author": { "name": "jjang-go" },
   "license": "MIT",
